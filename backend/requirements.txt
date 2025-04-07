@@ -1,0 +1,17 @@
+Django==4.2.10
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+celery==5.4.0
+redis==5.0.1
+pytesseract==0.3.10
+opencv-python==4.9.0.80
+cryptography==42.0.5
+scikit-learn==1.4.1
+tensorflow==2.15.0
+web3==6.15.1
+gunicorn==21.2.0
+whitenoise==6.6.0
+django-cors-headers==4.3.1
+Pillow==10.2.0 
