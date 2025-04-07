@@ -2,15 +2,17 @@
 
 import React, { useState } from "react"
 import { Button } from "../ui/Button"
-import { Input } from "../ui/input" 
+import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Checkbox } from "../ui/checkbox"
 import { Card, CardContent, CardFooter } from "../ui/card"
 import { useToast } from "../../hooks/use-toast"
 import { Eye, EyeOff, Loader2, AlertCircle, User, UserPlus } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
+import AuthLayout from "../layouts/auth-layout"
+import { useNavigate, Link } from "react-router-dom"
 
-export function Register() {
+function Register() {
   const [role, setRole] = useState('patient')
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -30,6 +32,7 @@ export function Register() {
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [errors, setErrors] = useState({})
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const checkPasswordStrength = (password) => {
     let strength = 0
@@ -82,70 +85,71 @@ export function Register() {
 
   const validateForm = () => {
     const newErrors = {}
-    
+
     if (!fullName) newErrors.fullName = "Full name is required"
     if (!email) newErrors.email = "Email is required"
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Invalid email format"
-    
+
     if (!password) newErrors.password = "Password is required"
     else if (password.length < 8) newErrors.password = "Password must be at least 8 characters"
-    
+
     if (!confirmPassword) newErrors.confirmPassword = "Please confirm your password"
     else if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match"
-    
+
     if (!phoneNumber) newErrors.phoneNumber = "Phone number is required"
-    
+
     if (role === 'patient') {
       if (!dateOfBirth) newErrors.dateOfBirth = "Date of birth is required"
       if (!gender) newErrors.gender = "Please select your gender"
     }
-    
+
     if (role === 'doctor') {
       if (!licenseNumber) newErrors.licenseNumber = "License number is required"
       if (!specialization) newErrors.specialization = "Specialization is required"
       if (!location) newErrors.location = "Location is required"
     }
-    
+
     if (!agreeTerms) newErrors.terms = "You must agree to the terms and privacy policy"
-    
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
-    
+
     setIsLoading(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500))
-      
-      console.log('Registration successful', { 
-        role, 
+
+      console.log('Registration successful', {
+        role,
         fullName,
-        email, 
+        email,
         password,
         phoneNumber,
-        ...(role === 'patient' && { 
+        ...(role === 'patient' && {
           dateOfBirth,
           gender
         }),
-        ...(role === 'doctor' && { 
+        ...(role === 'doctor' && {
           licenseNumber,
           specialization,
           hospitalName,
           location
         })
       })
-      
+
       toast({
         title: "Registration successful",
         description: "Your account has been created",
       })
-      
-      // Here we would navigate to onboarding
-      // router.push("/onboarding")
+
+      // Navigate to login page after successful registration
+      navigate('/login')
+
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -181,11 +185,10 @@ export function Register() {
           <button
             type="button"
             onClick={() => setRole('patient')}
-            className={`flex-1 py-2.5 flex items-center justify-center rounded-md border border-gray-300 shadow-sm transition-all ${
-              role === 'patient'
-                ? 'border-primary text-primary border-2 bg-primary/5'
-                : 'text-gray-500 hover:border-gray-400 hover:bg-gray-50'
-            }`}
+            className={`flex-1 py-2.5 flex items-center justify-center rounded-md border border-gray-300 shadow-sm transition-all ${role === 'patient'
+              ? 'border-primary text-primary border-2 bg-primary/5'
+              : 'text-gray-500 hover:border-gray-400 hover:bg-gray-50'
+              }`}
           >
             <User className="w-4 h-4 mr-2" />
             Patient
@@ -193,11 +196,10 @@ export function Register() {
           <button
             type="button"
             onClick={() => setRole('doctor')}
-            className={`flex-1 py-2.5 flex items-center justify-center rounded-md border border-gray-300 shadow-sm transition-all ${
-              role === 'doctor'
-                ? 'border-primary text-primary border-2 bg-primary/5'
-                : 'text-gray-500 hover:border-gray-400 hover:bg-gray-50'
-            }`}
+            className={`flex-1 py-2.5 flex items-center justify-center rounded-md border border-gray-300 shadow-sm transition-all ${role === 'doctor'
+              ? 'border-primary text-primary border-2 bg-primary/5'
+              : 'text-gray-500 hover:border-gray-400 hover:bg-gray-50'
+              }`}
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Healthcare Provider
@@ -291,8 +293,8 @@ export function Register() {
                         passwordStrength <= 1
                           ? "text-red-500"
                           : passwordStrength === 2
-                          ? "text-yellow-500"
-                          : "text-green-500"
+                            ? "text-yellow-500"
+                            : "text-green-500"
                       }
                     >
                       {getPasswordStrengthText()}
@@ -438,9 +440,9 @@ export function Register() {
             </CardContent>
 
             <CardFooter className="flex flex-col border-t border-gray-200 pt-4 pb-5 bg-gray-50">
-              <Button 
-                type="submit" 
-                className="w-full h-10 font-medium text-white" 
+              <Button
+                type="submit"
+                className="w-full h-10 font-medium text-white"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -455,9 +457,9 @@ export function Register() {
 
               <div className="mt-3 text-center text-xs text-gray-500">
                 Already have an account?{" "}
-                <a href="/login" className="text-primary hover:underline font-medium">
+                <Link to="/login" className="text-primary hover:underline font-medium">
                   Sign in
-                </a>
+                </Link>
               </div>
             </CardFooter>
           </form>
@@ -467,4 +469,12 @@ export function Register() {
   )
 }
 
-export default Register
+function RegisterPage() {
+  return (
+    <AuthLayout title="Create your account" subtitle="Join HealthChain to securely manage your health records">
+      <Register />
+    </AuthLayout>
+  )
+}
+
+export default RegisterPage
