@@ -53,147 +53,86 @@ const DashboardOverview = () => {
   const [loading, setLoading] = useState(true)
   const [userData, setUserData] = useState(null)
   const [healthData, setHealthData] = useState({
-    bloodType: 'A+',
-    height: '175',
-    weight: '72',
-    bloodPressure: '120/80',
-    heartRate: '72',
-    chronicConditions: ['Asthma (Mild)'],
-    medications: [],
-    allergies: []
+    bloodType: localStorage.getItem('bloodType') || 'A+',
+    height: localStorage.getItem('height') || '175',
+    weight: localStorage.getItem('weight') || '72',
+    bloodPressure: localStorage.getItem('bloodPressure') || '120/80',
+    heartRate: localStorage.getItem('heartRate') || '72',
+    chronicConditions: JSON.parse(localStorage.getItem('chronicConditions') || '[]'),
+    medications: JSON.parse(localStorage.getItem('medications') || '[]'),
+    allergies: JSON.parse(localStorage.getItem('allergies') || '[]')
   })
   const navigate = useNavigate()
   const { toast } = useToast()
   const [healthRecords, setHealthRecords] = useState([]);
-  const [appointmentCount, setAppointmentCount] = useState(0);
+  const [appointments, setAppointments] = useState([]);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
 
-  // Safe JSON parsing function
-  const safeJsonParse = (jsonString, fallback) => {
-    if (!jsonString) return fallback
-
-    try {
-      return JSON.parse(jsonString)
-    } catch (error) {
-      // If it's not JSON, treat as a single item array if it's a non-empty string
-      return jsonString.trim() ? [jsonString.trim()] : fallback
-    }
-  }
-
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem(ACCESS_TOKEN)
-      if (!token) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to access the dashboard",
-          variant: "destructive",
-        })
-        navigate('/login')
-        return false
-      }
-      return true
-    }
-
-    if (checkAuth()) {
-      // Load user authentication data
-      const userData = {
-        username: localStorage.getItem('username') || 'User',
-        fullName: localStorage.getItem('fullName') || '',
-        phoneNumber: localStorage.getItem('phoneNumber') || '',
-        role: localStorage.getItem('role') || 'patient',
-        dateOfBirth: localStorage.getItem('dateOfBirth') || '',
-        gender: localStorage.getItem('gender') || '',
-      }
-
-      if (userData.role === 'doctor') {
-        userData.licenseNumber = localStorage.getItem('licenseNumber') || ''
-        userData.specialization = localStorage.getItem('specialization') || ''
-        userData.hospitalName = localStorage.getItem('hospitalName') || ''
-        userData.location = localStorage.getItem('location') || ''
-      }
-
-      // Load health data from localStorage
-      const healthData = {
-        bloodType: localStorage.getItem('bloodType') || 'A+',
-        height: localStorage.getItem('height') || '175',
-        weight: localStorage.getItem('weight') || '72',
-        bloodPressure: localStorage.getItem('bloodPressure') || '120/80',
-        heartRate: localStorage.getItem('heartRate') || '72',
-        // Parse safely with fallbacks
-        chronicConditions: safeJsonParse(localStorage.getItem('chronicConditions'), ['Asthma (Mild)']),
-        medications: safeJsonParse(localStorage.getItem('medications'), []),
-        allergies: safeJsonParse(localStorage.getItem('allergies'), []),
-        // Additional health data 
-        emergencyContactName: localStorage.getItem('emergencyContactName') || '',
-        emergencyContactRelation: localStorage.getItem('emergencyContactRelation') || '',
-        emergencyContactPhone: localStorage.getItem('emergencyContactPhone') || '',
-      }
-
-      setUserData(userData)
-      setHealthData(healthData)
-      setLoading(false)
-
-      // Check if onboarding is completed after login
-      const onboardingCompleted = localStorage.getItem('onboardingCompleted')
-      if (!onboardingCompleted) {
-        toast({
-          title: "Complete your profile",
-          description: "Please complete your health profile setup",
-        })
-        navigate('/onboarding')
-        return
-      }
-    }
-  }, [navigate, toast])
-
-  useEffect(() => {
-    // Load health records count
-    const fetchHealthRecords = async () => {
+    const loadData = async () => {
       try {
+        // Load user data
+        const userData = {
+          username: localStorage.getItem('username') || 'User',
+          fullName: localStorage.getItem('fullName') || '',
+          phoneNumber: localStorage.getItem('phoneNumber') || '',
+          role: localStorage.getItem('role') || 'patient',
+          dateOfBirth: localStorage.getItem('dateOfBirth') || '',
+          gender: localStorage.getItem('gender') || '',
+        };
+
+        if (userData.role === 'doctor') {
+          userData.licenseNumber = localStorage.getItem('licenseNumber') || ''
+          userData.specialization = localStorage.getItem('specialization') || ''
+          userData.hospitalName = localStorage.getItem('hospitalName') || ''
+          userData.location = localStorage.getItem('location') || ''
+        }
+
+        setUserData(userData);
+
+        // Load health records
         const records = await healthRecordService.getRecords();
         setHealthRecords(records);
-      } catch (error) {
-        console.error('Error fetching health records:', error);
-      }
-    };
 
-    // Load appointment count  
-    const fetchAppointments = async () => {
-      try {
+        // Load appointments
         const appointments = await appointmentService.getAppointments();
-        setAppointmentCount(appointments.length);
+        setAppointments(appointments);
+
+        setLoading(false);
       } catch (error) {
-        console.error('Error fetching appointments:', error);
+        console.error('Error loading dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+        setLoading(false);
       }
     };
 
-    fetchHealthRecords();
-    fetchAppointments();
+    loadData();
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await api.logout()
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out",
-      })
-      navigate('/login')
-    } catch (error) {
-      console.error('Logout error:', error)
-      localStorage.removeItem(ACCESS_TOKEN)
-      localStorage.removeItem(REFRESH_TOKEN)
-      toast({
-        title: "Logged out",
-        description: "You have been logged out",
-      })
-      navigate('/login')
-    }
-  }
 
   const handleAddRecord = () => {
     setIsAddingRecord(true);
+  };
+
+  const handleRecordAdded = async () => {
+    try {
+      const records = await healthRecordService.getRecords();
+      setHealthRecords(records);
+      toast({
+        title: "Record added",
+        description: "Your health record has been added successfully"
+      });
+    } catch (error) {
+      console.error('Error refreshing records:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add health record",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleManageSharing = () => {
@@ -216,50 +155,17 @@ const DashboardOverview = () => {
     navigate('/analytics');
   };
 
-  const handleAddMedication = () => {
-    // Show medication adding modal or navigate to medication add page
-    const medication = prompt('Enter new medication:');
-    if (medication) {
-      const updatedMedications = [...healthData.medications, medication];
-      localStorage.setItem('medications', JSON.stringify(updatedMedications));
-      setHealthData({
-        ...healthData,
-        medications: updatedMedications
-      });
-      toast({
-        title: "Medication added",
-        description: "Your medication has been added to your profile"
-      });
-    }
-  };
-
-  const handleAddAllergy = () => {
-    // Show allergy adding modal or navigate to allergy add page
-    const allergy = prompt('Enter new allergy:');
-    if (allergy) {
-      const updatedAllergies = [...healthData.allergies, allergy];
-      localStorage.setItem('allergies', JSON.stringify(updatedAllergies));
-      setHealthData({
-        ...healthData,
-        allergies: updatedAllergies
-      });
-      toast({
-        title: "Allergy added",
-        description: "Your allergy has been added to your profile"
-      });
-    }
-  };
-
-  const handleRecordAdded = async () => {
+  const handleLogout = async () => {
     try {
-      const records = await healthRecordService.getRecords();
-      setHealthRecords(records);
-      toast({
-        title: "Record added",
-        description: "Your health record has been added successfully"
-      });
+      await api.logout();
+      navigate('/login');
     } catch (error) {
-      console.error('Error refreshing records:', error);
+      console.error('Logout error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive",
+      });
     }
   };
 
@@ -318,9 +224,9 @@ const DashboardOverview = () => {
             <Share2 className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{appointmentCount}</div>
+            <div className="text-2xl font-bold">{appointments.length}</div>
             <p className="text-xs text-gray-500">
-              {appointmentCount > 1 ? `${appointmentCount - 1} healthcare providers, 1 organization` : '1 healthcare provider'}
+              {appointments.length > 1 ? `${appointments.length - 1} healthcare providers, 1 organization` : '1 healthcare provider'}
             </p>
           </CardContent>
           <CardFooter className="pt-0">
@@ -423,158 +329,7 @@ const DashboardOverview = () => {
                 <CardDescription>Your key health metrics and information</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="overview">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="medications">Medications</TabsTrigger>
-                    <TabsTrigger value="allergies">Allergies</TabsTrigger>
-                  </TabsList>
-
-                  {/* Overview Tab */}
-                  <TabsContent value="overview" className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-500">Blood Type</div>
-                        <div className="flex items-center">
-                          <Droplets className="h-5 w-5 mr-2 text-red-500" />
-                          <span className="text-2xl font-bold">{healthData.bloodType}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-500">Height & Weight</div>
-                        <div className="flex items-center">
-                          <Dumbbell className="h-5 w-5 mr-2 text-blue-500" />
-                          <span className="text-lg font-medium">{healthData.height} cm, {healthData.weight} kg</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-500">Vital Signs</div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-lg border p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Heart className="h-5 w-5 mr-2 text-red-500" />
-                              <span className="font-medium">Blood Pressure</span>
-                            </div>
-                            <Badge variant="outline" className="text-green-500">Normal</Badge>
-                          </div>
-                          <div className="mt-2 text-2xl font-bold">{healthData.bloodPressure}</div>
-                          <div className="mt-1 text-xs text-gray-500">Last updated: 2 days ago</div>
-                        </div>
-
-                        <div className="rounded-lg border p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Activity className="h-5 w-5 mr-2 text-green-500" />
-                              <span className="font-medium">Heart Rate</span>
-                            </div>
-                            <Badge variant="outline" className="text-green-500">Normal</Badge>
-                          </div>
-                          <div className="mt-2 text-2xl font-bold">{healthData.heartRate} bpm</div>
-                          <div className="mt-1 text-xs text-gray-500">Last updated: 2 days ago</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {healthData.chronicConditions && healthData.chronicConditions.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-500">Chronic Conditions</div>
-                        <div className="rounded-lg border p-3">
-                          <ul className="space-y-2">
-                            {healthData.chronicConditions.map((condition, index) => (
-                              <li key={index} className="flex items-start">
-                                <AlertCircle className="h-5 w-5 mr-2 text-amber-500 flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <p className="font-medium">{condition}</p>
-                                  <p className="text-xs text-gray-500">Diagnosed: Jan 2018</p>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  {/* Medications Tab */}
-                  <TabsContent value="medications">
-                    <div className="py-4">
-                      {healthData.medications && healthData.medications.length > 0 ? (
-                        <div className="space-y-4">
-                          {healthData.medications.map((medication, index) => (
-                            <div key={index} className="rounded-lg border p-3">
-                              <div className="flex items-start">
-                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                  <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                </div>
-                                <div>
-                                  <p className="font-medium">{medication}</p>
-                                  <p className="text-sm text-gray-500">Take as prescribed</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-gray-500">No medications recorded</p>
-                          <Button
-                            className="mt-4"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddMedication}
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Medication
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  {/* Allergies Tab */}
-                  <TabsContent value="allergies">
-                    <div className="py-4">
-                      {healthData.allergies && healthData.allergies.length > 0 ? (
-                        <div className="space-y-4">
-                          {healthData.allergies.map((allergy, index) => (
-                            <div key={index} className="rounded-lg border p-3">
-                              <div className="flex items-start">
-                                <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                  <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                  </svg>
-                                </div>
-                                <div>
-                                  <p className="font-medium">{allergy}</p>
-                                  <p className="text-sm text-gray-500">Avoid exposure</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-gray-500">No allergies recorded</p>
-                          <Button
-                            className="mt-4"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddAllergy}
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Allergy
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <HealthSummary />
               </CardContent>
             </Card>
 
@@ -609,32 +364,6 @@ const DashboardOverview = () => {
                         Your recent lab results have been uploaded to your records.
                       </p>
                       <p className="text-xs text-gray-400">Yesterday</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 p-1.5 rounded-full bg-amber-100">
-                      <AlertCircle className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">Sharing Request</p>
-                      <p className="text-xs text-gray-500">
-                        Central Hospital has requested access to your medical history.
-                      </p>
-                      <p className="text-xs text-gray-400">2 days ago</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 p-1.5 rounded-full bg-red-100">
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">Access Expired</p>
-                      <p className="text-xs text-gray-500">
-                        Dr. Chen's access to your records has expired.
-                      </p>
-                      <p className="text-xs text-gray-400">3 days ago</p>
                     </div>
                   </div>
                 </div>
@@ -758,22 +487,22 @@ const DashboardOverview = () => {
             <CardContent><UpcomingAppointments limit={10} /></CardContent>
             <CardFooter>
               <Button
+                variant="outline"
                 className="w-full"
-                onClick={() => navigate('/appointments/new')}
+                onClick={handleManageAppointments}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Schedule New Appointment
+                Manage Appointments
               </Button>
             </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
 
+      {/* Add Record Modal */}
       {isAddingRecord && (
         <AddRecordModal
-          isOpen={isAddingRecord}
           onClose={() => setIsAddingRecord(false)}
-          onSuccess={handleRecordAdded}
+          onRecordAdded={handleRecordAdded}
         />
       )}
     </div>
