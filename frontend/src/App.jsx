@@ -1,15 +1,14 @@
 import React, { useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
+import Sidebar from './components/dashboard/sidebar';
+
 import LoginPage from './components/auth/Login';
 import RegisterPage from './components/auth/Register';
 import AuthLayout from './components/layouts/auth-layout';
-import { OnboardingFlow } from './pages/Onboarding';
+import OnboardingFlow from './pages/patient-dashboard/onboarding';
 
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import Sidebar from './components/dashboard/sidebar';
-
-const DashboardOverview = React.lazy(() => import('./components/dashboard/dashboard-overview'));
+const Dashboard = React.lazy(() => import('./pages/patient-dashboard/dashboard'));
 const HealthRecords = React.lazy(() => import('./pages/patient-dashboard/health-records'));
 const SharingControls = React.lazy(() => import('./pages/patient-dashboard/sharing'));
 const SecuritySettings = React.lazy(() => import('./pages/patient-dashboard/security'));
@@ -53,148 +52,89 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          path="/login"
-          element={
-            <LoginPage />
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <RegisterPage />
-          }
-        />
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute>
-              <OnboardingFlow />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/login" element={
+          <LoginPage />
+        } />
+        <Route path="/register" element={
+          <RegisterPage />
+        } />
+        <Route path="/onboarding" element={
+          <OnboardingFlow />
+        } />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <DashboardOverview />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/health-records"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <HealthRecords />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/sharing"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <SharingControls />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/security"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <SecuritySettings />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/emergency"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <EmergencyAccess />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/providers"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Providers />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/appointments"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Appointments />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Analytics />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Profile />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Settings />
-                </Suspense>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Authenticated (dashboard) routes */}
+        <Route path="/dashboard" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Dashboard />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/health-records" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <HealthRecords />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/sharing" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <SharingControls />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/security" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <SecuritySettings />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/emergency" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <EmergencyAccess />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/providers" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Providers />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/appointments" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Appointments />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/analytics" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Analytics />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/profile" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Profile />
+            </Suspense>
+          </DashboardLayout>
+        } />
+        <Route path="/settings" element={
+          <DashboardLayout>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Settings />
+            </Suspense>
+          </DashboardLayout>
+        } />
 
+        {/* Redirect root to the login page (or change this logic based on auth state) */}
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

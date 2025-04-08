@@ -26,7 +26,7 @@ import { Checkbox } from "../../components/ui/checkbox";
 import { useToast } from "../../hooks/use-toast";
 import { Shield, ChevronRight, ChevronLeft, Check, Loader2 } from "lucide-react";
 
-export function OnboardingFlow() {
+function OnboardingFlow() {
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -467,3 +467,5 @@ export function OnboardingFlow() {
         </div>
     );
 }
+
+export default OnboardingFlow;

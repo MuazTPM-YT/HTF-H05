@@ -68,13 +68,20 @@ export const register = async (userData) => {
             return response.data;
         } catch (apiError) {
             // If backend is not available, use local authentication
+<<<<<<< HEAD
+            console.log('Backend not available, using local authentication');
+=======
             console.log('Backend registration failed, using local storage');
+>>>>>>> muaz
 
             // Store user data in localStorage
             localStorage.setItem('username', userData.email);
             localStorage.setItem('fullName', userData.first_name + ' ' + userData.last_name);
             localStorage.setItem('email', userData.email);
+<<<<<<< HEAD
+=======
             localStorage.setItem('password', userData.password); // Store password for local auth
+>>>>>>> muaz
             localStorage.setItem('phone_number', userData.phone_number);
             localStorage.setItem('role', userData.role);
             localStorage.setItem('accountCreated', 'true');
@@ -83,11 +90,14 @@ export const register = async (userData) => {
             localStorage.setItem(ACCESS_TOKEN, 'dummy-access-token');
             localStorage.setItem(REFRESH_TOKEN, 'dummy-refresh-token');
 
+<<<<<<< HEAD
+=======
             console.log('Local registration successful:', {
                 email: userData.email,
                 role: userData.role
             });
 
+>>>>>>> muaz
             return { success: true };
         }
     } catch (error) {
