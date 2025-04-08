@@ -1,7 +1,7 @@
 import React from "react";
 import { Shield } from "lucide-react";
 
-export function AuthLayout({ children, title, subtitle }) {
+function AuthLayout({ children, title, subtitle }) {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:flex bg-primary/10 items-center justify-center p-8 overflow-visible sticky top-0 h-screen">
@@ -79,3 +79,5 @@ export function AuthLayout({ children, title, subtitle }) {
     </div>
   );
 }
+
+export default AuthLayout

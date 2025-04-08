@@ -1,8 +1,12 @@
 import React, { useState, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 import Sidebar from './components/dashboard/sidebar';
 
-// Lazy load page components for better performance
+import LoginPage from './components/auth/Login';
+import RegisterPage from './components/auth/Register';
+import AuthLayout from './components/layouts/auth-layout';
+
 const Dashboard = React.lazy(() => import('./pages/dashboard'));
 const HealthRecords = React.lazy(() => import('./pages/health-records'));
 const SharingControls = React.lazy(() => import('./pages/sharing'));
@@ -14,14 +18,12 @@ const Analytics = React.lazy(() => import('./pages/analytics'));
 const Profile = React.lazy(() => import('./pages/profile'));
 const Settings = React.lazy(() => import('./pages/settings'));
 
-// Loading spinner for lazy-loaded components
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
   </div>
 );
 
-// Layout wrapper for all dashboard pages
 const DashboardLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   
@@ -49,14 +51,19 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={
-          <DashboardLayout>
-            <Suspense fallback={<LoadingSpinner />}>
-              <Dashboard />
-            </Suspense>
-          </DashboardLayout>
+        {/* Unauthenticated routes */}
+        <Route path="/login" element={
+          <AuthLayout>
+            <LoginPage />
+          </AuthLayout>
         } />
-        
+        <Route path="/register" element={
+          <AuthLayout>
+            <RegisterPage />
+          </AuthLayout>
+        } />
+
+        {/* Authenticated (dashboard) routes */}
         <Route path="/dashboard" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -64,7 +71,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/health-records" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -72,7 +78,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/sharing" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -80,7 +85,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/security" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -88,7 +92,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/emergency" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -96,7 +99,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/providers" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -104,7 +106,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/appointments" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -112,7 +113,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/analytics" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -120,7 +120,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/profile" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -128,7 +127,6 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
-        
         <Route path="/settings" element={
           <DashboardLayout>
             <Suspense fallback={<LoadingSpinner />}>
@@ -136,6 +134,9 @@ function App() {
             </Suspense>
           </DashboardLayout>
         } />
+
+        {/* Redirect root to the login page (or change this logic based on auth state) */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
