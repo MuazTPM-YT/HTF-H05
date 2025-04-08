@@ -143,19 +143,18 @@ function Register() {
 
       localStorage.setItem('fullName', fullName);
       localStorage.setItem('email', email);
-      localStorage.setItem('password', email);
       localStorage.setItem('phone_number', phoneNumber);
       localStorage.setItem('role', role);
+      localStorage.setItem('accountCreated', 'true');
 
       await api.register(userData);
 
       toast({
         title: "Registration successful",
-        description: "Your account has been created",
+        description: "Please complete your health profile setup",
       });
 
-      navigate('/login');
-
+      navigate('/onboarding');
     } catch (error) {
       toast({
         title: "Registration failed",

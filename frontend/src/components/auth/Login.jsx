@@ -30,8 +30,27 @@ function Login() {
     const [_location, _setLocation] = useState("")
     const [rememberMe, setRememberMe] = useState(false)
     const [errors, setErrors] = useState({})
+    const [showOnboardingSuccess, setShowOnboardingSuccess] = useState(false)
     const { toast } = useToast()
     const navigate = useNavigate()
+
+    // Check if user was redirected from onboarding
+    React.useEffect(() => {
+        const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+        if (onboardingCompleted === 'true') {
+            // Only show the message if they just completed onboarding (not on subsequent visits)
+            const savedEmail = localStorage.getItem('email');
+            if (savedEmail) {
+                setEmail(savedEmail);
+                setShowOnboardingSuccess(true);
+                // Show a toast notification
+                toast({
+                    title: "Profile setup complete",
+                    description: "Your account has been created successfully. Please log in.",
+                });
+            }
+        }
+    }, [toast]);
 
     const handlePasswordChange = (e) => {
         const newPassword = e.target.value
@@ -228,6 +247,16 @@ function Login() {
                         Healthcare Provider
                     </button>
                 </div>
+
+                {showOnboardingSuccess && (
+                    <Alert className="mb-4 border-green-200 bg-green-50">
+                        <AlertCircle className="h-4 w-4 text-green-600" />
+                        <AlertTitle className="text-green-800">Profile Setup Complete</AlertTitle>
+                        <AlertDescription className="text-green-700">
+                            Your account has been created successfully. Please log in with your credentials.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <Card className="border-gray-200 shadow-md">
                     <form

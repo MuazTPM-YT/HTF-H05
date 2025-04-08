@@ -1,83 +1,64 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../constants'
-import { jwtDecode } from 'jwt-decode'
+import { ACCESS_TOKEN } from '../../constants'
 
 const ProtectedRoute = ({ children }) => {
-    const [loading, setLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [needsOnboarding, setNeedsOnboarding] = useState(false)
     const location = useLocation()
 
     useEffect(() => {
-        const checkTokenValidity = (token) => {
+        const checkAuthentication = async () => {
             try {
-                const decoded = jwtDecode(token);
-                const currentTime = Date.now() / 1000;
-
-                // Check if token is expired
-                if (decoded.exp && decoded.exp < currentTime) {
-                    console.log('Token expired');
-                    return false;
-                }
-
-                return true;
-            } catch (error) {
-                console.error('Token validation error:', error);
-                return false;
-            }
-        };
-
-        const checkAuth = async () => {
-            try {
+                // Simulate checking token validity
                 const token = localStorage.getItem(ACCESS_TOKEN)
+                const onboardingCompleted = localStorage.getItem('onboardingCompleted')
+                const accountCreated = localStorage.getItem('accountCreated')
 
-                if (!token) {
-                    setIsAuthenticated(false)
-                    setLoading(false)
-                    return
+                // Check authentication
+                const authenticated = !!token
+                setIsAuthenticated(authenticated)
+
+                // If account was just created and onboarding is not completed yet,
+                // user needs to go through onboarding
+                if (accountCreated === 'true' && onboardingCompleted !== 'true') {
+                    setNeedsOnboarding(true)
                 }
 
-                // Validate the token
-                const isValid = checkTokenValidity(token)
-
-                if (isValid) {
-                    setIsAuthenticated(true)
-                } else {
-                    // Try to use refresh token
-                    const refreshToken = localStorage.getItem(REFRESH_TOKEN)
-                    if (refreshToken && checkTokenValidity(refreshToken)) {
-                        // In a real app, would call refresh token endpoint here
-                        setIsAuthenticated(true)
-                    } else {
-                        setIsAuthenticated(false)
-                    }
-                }
-
-                setLoading(false)
+                setIsLoading(false)
             } catch (error) {
                 console.error('Auth check error:', error)
                 setIsAuthenticated(false)
-                setLoading(false)
+                setIsLoading(false)
             }
         }
 
-        checkAuth()
+        checkAuthentication()
     }, [])
 
-    if (loading) {
+    if (isLoading) {
+        // Loading state while checking authentication
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+            <div className="flex items-center justify-center h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="mt-4 text-gray-500">Verifying authentication...</p>
+                <span className="ml-2 text-lg">Loading...</span>
             </div>
         )
     }
 
+    // Redirect to onboarding if needed (account created but onboarding not completed)
+    if (needsOnboarding) {
+        return <Navigate to="/onboarding" state={{ from: location }} replace />
+    }
+
+    // Redirect to login if not authenticated
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />
     }
 
+    // If authenticated, render the children
     return children
 }
 
