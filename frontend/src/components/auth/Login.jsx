@@ -13,6 +13,7 @@ import AuthLayout from "../layouts/auth-layout"
 import { useNavigate, Link } from "react-router-dom"
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../constants'
 import axios from "axios"
+import { useBlockchainLogging } from "../../hooks/use-blockchain-logging"
 
 function Login() {
     const [role, setRole] = useState('patient')
@@ -33,6 +34,7 @@ function Login() {
     const [showOnboardingSuccess, setShowOnboardingSuccess] = useState(false)
     const { toast } = useToast()
     const navigate = useNavigate()
+    const { logAuthentication } = useBlockchainLogging()
 
     // Check if user was redirected from onboarding
     React.useEffect(() => {
@@ -144,6 +146,21 @@ function Login() {
 
                 console.log('Login successful, showing toast notification');
 
+                // Log successful authentication to blockchain
+                try {
+                    await logAuthentication({
+                        action: 'Login',
+                        username: email,
+                        role: role,
+                        status: 'Authorized',
+                        ipAddress: '192.168.1.1' // In a real app, this would be captured from the request
+                    });
+                    console.log('Successfully logged authentication event to blockchain');
+                } catch (error) {
+                    console.error('Failed to log authentication event to blockchain:', error);
+                    // Continue with login flow even if blockchain logging fails
+                }
+
                 toast({
                     title: "Login successful",
                     description: "Welcome back!",
@@ -159,6 +176,21 @@ function Login() {
 
             } catch (apiError) {
                 console.error('API call error:', apiError);
+
+                // Log failed authentication to blockchain
+                try {
+                    await logAuthentication({
+                        action: 'Failed Login',
+                        username: email,
+                        role: role,
+                        status: 'Unauthorized',
+                        ipAddress: '192.168.1.1' // In a real app, this would be captured from the request
+                    });
+                    console.log('Successfully logged failed authentication event to blockchain');
+                } catch (error) {
+                    console.error('Failed to log authentication event to blockchain:', error);
+                    // Continue with login flow even if blockchain logging fails
+                }
 
                 if (apiError.response) {
                     console.error('Error response:', apiError.response.status, apiError.response.data);

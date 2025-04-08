@@ -1,8 +1,125 @@
-import React from 'react';
-import { Key, ShieldCheck, History, Clock, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Key, ShieldCheck, History, Clock, AlertTriangle, Shield, Database, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useToast } from '../../hooks/use-toast';
+
+// This would be replaced with actual Web3 integration in production
+// import { ethers } from 'ethers';
 
 const SecuritySettings = () => {
+  const { toast } = useToast();
+  const [isLogging, setIsLogging] = useState(false);
+  const [accessLogs, setAccessLogs] = useState([
+    {
+      id: '0x123abc',
+      timestamp: '10/15/2023, 2:30:00 PM',
+      action: 'Record Access',
+      user: 'Dr. Sarah Johnson',
+      ipAddress: '192.168.1.1',
+      status: 'Authorized',
+      txHash: '0x71c7656EC7ab88b098dFb751B8b65d8b6E8926F2a',
+      blockNumber: 14876234
+    },
+    {
+      id: '0x456def',
+      timestamp: '10/14/2023, 9:15:00 AM',
+      action: 'Login',
+      user: 'You',
+      ipAddress: '192.168.1.100',
+      status: 'Authorized',
+      txHash: '0x82d7656EC7ab88b098dFb751B8b65d8b6E8926F3b',
+      blockNumber: 14876100
+    },
+    {
+      id: '0x789ghi',
+      timestamp: '10/10/2023, 4:45:00 PM',
+      action: 'Record Update',
+      user: 'Central Hospital',
+      ipAddress: '192.168.2.50',
+      status: 'Authorized',
+      txHash: '0x93e7656EC7ab88b098dFb751B8b65d8b6E8926F4c',
+      blockNumber: 14875500
+    },
+    {
+      id: '0xabcdef',
+      timestamp: '10/5/2023, 11:20:00 AM',
+      action: 'Login Attempt',
+      user: 'Unknown',
+      ipAddress: '203.0.113.42',
+      status: 'Blocked',
+      txHash: '0xa4f7656EC7ab88b098dFb751B8b65d8b6E8926F5d',
+      blockNumber: 14874900
+    }
+  ]);
+
+  const [blockchainLoggingEnabled, setBlockchainLoggingEnabled] = useState(true);
+
+  // Mock function to simulate logging an event to the blockchain
+  const logToBlockchain = async (event) => {
+    setIsLogging(true);
+    try {
+      // In a real implementation, this would use ethers.js or web3.js to:
+      // 1. Connect to the blockchain (Ethereum)
+      // 2. Call a smart contract function to log the event
+      // 3. Wait for transaction confirmation
+
+      // Simulating blockchain transaction
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Create a new log entry with blockchain data
+      const newLog = {
+        id: `0x${Math.random().toString(16).slice(2, 8)}`,
+        timestamp: new Date().toLocaleString(),
+        action: event.action,
+        user: event.user || 'You',
+        ipAddress: '192.168.1.' + Math.floor(Math.random() * 255),
+        status: 'Authorized',
+        txHash: `0x${Math.random().toString(16).slice(2, 42)}`,
+        blockNumber: 14876234 + Math.floor(Math.random() * 100)
+      };
+
+      // Add to our local state (in a real app, this would be fetched from the blockchain)
+      setAccessLogs(prev => [newLog, ...prev]);
+
+      toast({
+        title: "Access logged to blockchain",
+        description: `Transaction hash: ${newLog.txHash.slice(0, 10)}...`,
+      });
+    } catch (error) {
+      console.error('Error logging to blockchain:', error);
+      toast({
+        title: "Blockchain logging failed",
+        description: "Unable to record access on the blockchain. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
+  const toggleBlockchainLogging = () => {
+    setBlockchainLoggingEnabled(!blockchainLoggingEnabled);
+    toast({
+      title: blockchainLoggingEnabled ? "Blockchain logging disabled" : "Blockchain logging enabled",
+      description: blockchainLoggingEnabled ?
+        "Access logs will no longer be recorded on the blockchain" :
+        "All access events will now be recorded on the blockchain",
+    });
+  };
+
+  const testBlockchainLogging = () => {
+    logToBlockchain({
+      action: 'Test Log Event',
+      user: 'You'
+    });
+  };
+
+  // In a real implementation, this would fetch logs from the blockchain
+  useEffect(() => {
+    // Simulating fetching logs from blockchain
+    console.log('Fetching logs from blockchain...');
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,6 +192,74 @@ const SecuritySettings = () => {
             </Button>
           </div>
         </div>
+
+        {/* Blockchain Access Logging */}
+        <div className="border rounded-lg p-5 mt-4">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Blockchain Access Logging
+              </h3>
+              <p className="text-gray-500 text-sm">All access to your records is permanently stored on the blockchain</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative inline-block w-12 h-6">
+                <input
+                  type="checkbox"
+                  id="toggle-blockchain-logging"
+                  className="opacity-0 w-0 h-0"
+                  checked={blockchainLoggingEnabled}
+                  onChange={toggleBlockchainLogging}
+                />
+                <label
+                  htmlFor="toggle-blockchain-logging"
+                  className={`block absolute cursor-pointer top-0 left-0 right-0 bottom-0 ${blockchainLoggingEnabled ? 'bg-blue-600' : 'bg-gray-300'} rounded-full before:absolute before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all ${blockchainLoggingEnabled ? 'before:translate-x-6' : ''}`}
+                ></label>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-blue-800">
+                  When enabled, all access to your health records is cryptographically signed and permanently stored on the Ethereum blockchain,
+                  creating an immutable audit trail. This ensures maximum transparency and security for your health data.
+                </p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={testBlockchainLogging}
+                    disabled={isLogging || !blockchainLoggingEnabled}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                  >
+                    {isLogging ? (
+                      <>
+                        <span className="animate-spin mr-2">⚪</span>
+                        Logging...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        Test Blockchain Logging
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                  >
+                    View Smart Contract
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Two-Factor Authentication */}
@@ -127,9 +312,9 @@ const SecuritySettings = () => {
           <div>
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <History className="h-5 w-5" />
-              Recent Access Logs
+              Blockchain Access Logs
             </h2>
-            <p className="text-gray-500">Review recent access to your health records</p>
+            <p className="text-gray-500">Immutable record of all access to your health records, secured by blockchain</p>
           </div>
           <Button variant="outline">View Full Access History</Button>
         </div>
@@ -143,37 +328,38 @@ const SecuritySettings = () => {
                 <th className="text-left py-3 px-4">User</th>
                 <th className="text-left py-3 px-4">IP Address</th>
                 <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Blockchain Record</th>
               </tr>
             </thead>
             <tbody className="text-sm">
-              <tr className="border-b">
-                <td className="py-3 px-4">10/15/2023, 2:30:00 PM</td>
-                <td className="py-3 px-4">Record Access</td>
-                <td className="py-3 px-4">Dr. Sarah Johnson</td>
-                <td className="py-3 px-4">192.168.1.1</td>
-                <td className="py-3 px-4"><span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Authorized</span></td>
-              </tr>
-              <tr className="border-b">
-                <td className="py-3 px-4">10/14/2023, 9:15:00 AM</td>
-                <td className="py-3 px-4">Login</td>
-                <td className="py-3 px-4">You</td>
-                <td className="py-3 px-4">192.168.1.100</td>
-                <td className="py-3 px-4"><span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Authorized</span></td>
-              </tr>
-              <tr className="border-b">
-                <td className="py-3 px-4">10/10/2023, 4:45:00 PM</td>
-                <td className="py-3 px-4">Record Update</td>
-                <td className="py-3 px-4">Central Hospital</td>
-                <td className="py-3 px-4">192.168.2.50</td>
-                <td className="py-3 px-4"><span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Authorized</span></td>
-              </tr>
-              <tr className="border-b">
-                <td className="py-3 px-4">10/5/2023, 11:20:00 AM</td>
-                <td className="py-3 px-4">Login Attempt</td>
-                <td className="py-3 px-4">Unknown</td>
-                <td className="py-3 px-4">203.0.113.42</td>
-                <td className="py-3 px-4"><span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Blocked</span></td>
-              </tr>
+              {accessLogs.map(log => (
+                <tr key={log.id} className="border-b">
+                  <td className="py-3 px-4">{log.timestamp}</td>
+                  <td className="py-3 px-4">{log.action}</td>
+                  <td className="py-3 px-4">{log.user}</td>
+                  <td className="py-3 px-4">{log.ipAddress}</td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 ${log.status === 'Authorized' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} rounded-full text-xs font-medium`}>
+                      {log.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <a
+                      href={`https://etherscan.io/tx/${log.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center"
+                    >
+                      {log.txHash.slice(0, 10)}...
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </a>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -190,6 +376,7 @@ const SecuritySettings = () => {
               <li>Enable two-factor authentication for additional security</li>
               <li>Regularly review access logs for unauthorized activity</li>
               <li>Backup your encryption keys in a secure location</li>
+              <li>Keep blockchain logging enabled for maximum security</li>
             </ul>
           </div>
         </div>

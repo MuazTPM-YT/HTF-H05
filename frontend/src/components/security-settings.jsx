@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Shield, Key, Lock, Smartphone } from "lucide-react";
+import { Shield, Key, Lock, Smartphone, Mail } from "lucide-react";
+import GoogleAuth from "./GoogleAuth";
 
 export default function SecuritySettings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+
+  useEffect(() => {
+    // Check if Google account is connected
+    const googleUser = localStorage.getItem('google_user');
+    setGoogleConnected(!!googleUser);
+  }, []);
 
   const securityItems = [
     {
@@ -43,8 +51,36 @@ export default function SecuritySettings() {
     }
   ];
 
+  const handleGoogleAuthSuccess = (userData) => {
+    setGoogleConnected(true);
+    console.log('Google user authenticated:', userData?.name);
+  };
+
   return (
     <div className="space-y-6">
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Social Authentication</h3>
+        <div className="grid grid-cols-1 gap-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Mail className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Google Authentication</h3>
+                <p className="text-sm text-gray-500">Sign in with your Google account</p>
+                <p className={`text-sm mt-1 font-medium ${googleConnected ? "text-green-600" : "text-gray-600"}`}>
+                  {googleConnected ? "Connected" : "Not connected"}
+                </p>
+              </div>
+            </div>
+            <div className="w-1/2">
+              <GoogleAuth onSuccess={handleGoogleAuthSuccess} />
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {securityItems.map((item, index) => (
           <Card key={index} className="p-6">

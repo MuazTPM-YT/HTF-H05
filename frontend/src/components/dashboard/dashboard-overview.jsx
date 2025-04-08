@@ -48,6 +48,7 @@ import { Link } from 'react-router-dom';
 import healthRecordService from '../../services/health-record-service';
 import appointmentService from '../../services/appointment-service';
 import AddRecordModal from './AddRecordModal';
+import { useBlockchainLogging } from '../../hooks/use-blockchain-logging';
 
 const DashboardOverview = () => {
   const [loading, setLoading] = useState(true)
@@ -67,6 +68,7 @@ const DashboardOverview = () => {
   const [healthRecords, setHealthRecords] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [isAddingRecord, setIsAddingRecord] = useState(false);
+  const { logAuthentication } = useBlockchainLogging();
 
   useEffect(() => {
     const loadData = async () => {
@@ -157,7 +159,30 @@ const DashboardOverview = () => {
 
   const handleLogout = async () => {
     try {
+      // Log the logout event to blockchain before actual logout
+      const username = localStorage.getItem('username') || 'unknown';
+      const role = localStorage.getItem('role') || 'user';
+
+      try {
+        await logAuthentication({
+          action: 'Logout',
+          username,
+          role,
+          status: 'Authorized',
+          ipAddress: '192.168.1.1' // In a real app, this would be captured from the request
+        });
+        console.log('Successfully logged logout event to blockchain');
+      } catch (error) {
+        console.error('Failed to log logout event to blockchain:', error);
+        // Continue with logout flow even if blockchain logging fails
+      }
+
       await api.logout();
+
+      // Clear tokens and user data
+      localStorage.removeItem(ACCESS_TOKEN);
+      localStorage.removeItem(REFRESH_TOKEN);
+
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);

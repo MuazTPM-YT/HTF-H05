@@ -19,6 +19,7 @@ const Appointments = React.lazy(() => import('./pages/patient-dashboard/appointm
 const Analytics = React.lazy(() => import('./pages/patient-dashboard/analytics'));
 const Profile = React.lazy(() => import('./pages/patient-dashboard/profile'));
 const Settings = React.lazy(() => import('./pages/patient-dashboard/settings'));
+const BlockchainLogs = React.lazy(() => import('./components/blockchain-logs'));
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-screen">
@@ -189,6 +190,18 @@ function App() {
               <DashboardLayout>
                 <Suspense fallback={<LoadingSpinner />}>
                   <Settings />
+                </Suspense>
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/access-logs"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <BlockchainLogs />
                 </Suspense>
               </DashboardLayout>
             </ProtectedRoute>
