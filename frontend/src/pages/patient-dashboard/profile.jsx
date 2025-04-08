@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Edit, Camera, Fingerprint, Shield, Lock, Bell, LogOut, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import SetupFaceID from '../../components/face-id/SetupFaceID';
+import axios from 'axios';
+import { useToast } from '../../hooks/use-toast';
+
+// API base URL
+const API_BASE_URL = 'http://localhost:8000';
 
 const Profile = () => {
   const [faceIDEnabled, setFaceIDEnabled] = useState(true);
+  const [showFaceIDSetup, setShowFaceIDSetup] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [userData, setUserData] = useState({
     fullName: '',
     email: '',
@@ -20,6 +28,16 @@ const Profile = () => {
     emergencyContactRelation: '',
     emergencyContactPhone: '',
   });
+
+  // Communication preferences state
+  const [communicationPrefs, setCommunicationPrefs] = useState({
+    emailUpdates: true,
+    appointmentReminders: true,
+    sharingNotifications: true,
+    marketingCommunications: false,
+  });
+
+  const { toast } = useToast();
 
   useEffect(() => {
     // Load user data from localStorage
@@ -40,9 +58,108 @@ const Profile = () => {
       emergencyContactPhone: localStorage.getItem('emergencyContactPhone') || '',
     };
 
+    // Load communication preferences
+    const loadedCommunicationPrefs = {
+      emailUpdates: localStorage.getItem('prefEmailUpdates') === 'true',
+      appointmentReminders: localStorage.getItem('prefAppointmentReminders') === 'true',
+      sharingNotifications: localStorage.getItem('prefSharingNotifications') === 'true',
+      marketingCommunications: localStorage.getItem('prefMarketingCommunications') === 'true',
+    };
+
+    // Check if Face ID is configured
+    const faceIDConfigured = localStorage.getItem('faceIDConfigured') === 'true';
+    setFaceIDEnabled(faceIDConfigured);
+
     setUserData(loadedUserData);
     setHealthData(loadedHealthData);
+    setCommunicationPrefs({
+      emailUpdates: loadedCommunicationPrefs.emailUpdates !== false, // Default to true
+      appointmentReminders: loadedCommunicationPrefs.appointmentReminders !== false, // Default to true
+      sharingNotifications: loadedCommunicationPrefs.sharingNotifications !== false, // Default to true
+      marketingCommunications: loadedCommunicationPrefs.marketingCommunications || false, // Default to false
+    });
   }, []);
+
+  const handleFaceIDSetupComplete = () => {
+    setShowFaceIDSetup(false);
+    setFaceIDEnabled(true);
+    localStorage.setItem('faceIDConfigured', 'true');
+
+    toast({
+      title: "Success",
+      description: "Face ID has been configured successfully",
+    });
+  };
+
+  const handleFaceIDSetupCancel = () => {
+    setShowFaceIDSetup(false);
+  };
+
+  const handleFaceIDToggle = (e) => {
+    const newValue = e.target.checked;
+    setFaceIDEnabled(newValue);
+
+    if (newValue) {
+      // If enabling, show setup dialog
+      setShowFaceIDSetup(true);
+    } else {
+      // If disabling, reset face ID data
+      resetFaceID();
+    }
+  };
+
+  const resetFaceID = async () => {
+    setIsResetting(true);
+
+    try {
+      // Try to reset on the backend
+      const userId = localStorage.getItem('username') || 'test_user';
+
+      try {
+        // Check if backend is available
+        await axios.get(`${API_BASE_URL}/health`, { timeout: 3000 });
+
+        // Call reset endpoint
+        await axios.post(`${API_BASE_URL}/api/face-id/reset`, {
+          user_id: userId
+        });
+
+        toast({
+          title: "Success",
+          description: "Face ID data has been reset successfully",
+        });
+      } catch (error) {
+        console.error("Backend error when resetting Face ID:", error);
+        // Fallback to just local reset
+      }
+
+      // Always reset locally
+      localStorage.removeItem('faceIDConfigured');
+      localStorage.removeItem('faceIDSetupTime');
+      localStorage.removeItem('faceIDImagesCaptures');
+
+      setFaceIDEnabled(false);
+    } catch (error) {
+      console.error("Error resetting Face ID:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset Face ID. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  // Handle communication preferences toggles
+  const handleCommunicationToggle = (prefName) => (e) => {
+    const newValue = e.target.checked;
+    setCommunicationPrefs(prev => ({
+      ...prev,
+      [prefName]: newValue
+    }));
+    localStorage.setItem(`pref${prefName.charAt(0).toUpperCase() + prefName.slice(1)}`, newValue);
+  };
 
   return (
     <div className="space-y-6">
@@ -120,7 +237,7 @@ const Profile = () => {
                   type="checkbox"
                   className="sr-only peer"
                   checked={faceIDEnabled}
-                  onChange={() => setFaceIDEnabled(!faceIDEnabled)}
+                  onChange={handleFaceIDToggle}
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
@@ -132,11 +249,18 @@ const Profile = () => {
                 <p className="text-blue-600">Your device will use facial recognition to verify your identity when accessing sensitive information.</p>
 
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <button className="text-sm px-3 py-2 bg-white border border-blue-200 text-blue-600 rounded-md hover:bg-blue-50">
+                  <button
+                    className="text-sm px-3 py-2 bg-white border border-blue-200 text-blue-600 rounded-md hover:bg-blue-50"
+                    onClick={() => setShowFaceIDSetup(true)}
+                  >
                     Re-configure Face ID
                   </button>
-                  <button className="text-sm px-3 py-2 bg-white border border-red-200 text-red-600 rounded-md hover:bg-red-50">
-                    Reset Face ID Settings
+                  <button
+                    className="text-sm px-3 py-2 bg-white border border-red-200 text-red-600 rounded-md hover:bg-red-50"
+                    onClick={resetFaceID}
+                    disabled={isResetting}
+                  >
+                    {isResetting ? 'Resetting...' : 'Reset Face ID Settings'}
                   </button>
                 </div>
               </div>
@@ -235,7 +359,12 @@ const Profile = () => {
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={communicationPrefs.emailUpdates}
+                onChange={handleCommunicationToggle('emailUpdates')}
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
@@ -253,7 +382,12 @@ const Profile = () => {
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={communicationPrefs.appointmentReminders}
+                onChange={handleCommunicationToggle('appointmentReminders')}
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
@@ -271,7 +405,12 @@ const Profile = () => {
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={communicationPrefs.sharingNotifications}
+                onChange={handleCommunicationToggle('sharingNotifications')}
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
@@ -289,7 +428,12 @@ const Profile = () => {
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={communicationPrefs.marketingCommunications}
+                onChange={handleCommunicationToggle('marketingCommunications')}
+              />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
@@ -329,6 +473,13 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {showFaceIDSetup && (
+        <SetupFaceID
+          onComplete={handleFaceIDSetupComplete}
+          onCancel={handleFaceIDSetupCancel}
+        />
+      )}
     </div>
   );
 };
