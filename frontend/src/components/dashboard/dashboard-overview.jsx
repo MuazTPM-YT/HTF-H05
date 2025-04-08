@@ -41,7 +41,133 @@ import { UpcomingAppointments } from "./upcoming-appointments"
 import HealthSummary from "./health-summary"
 
 const DashboardOverview = () => {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [loading, setLoading] = useState(true)
+  const [userData, setUserData] = useState(null)
+  const [healthData, setHealthData] = useState({
+    bloodType: localStorage.getItem('bloodType') || 'A+',
+    height: localStorage.getItem('height') || '175',
+    weight: localStorage.getItem('weight') || '72',
+    bloodPressure: localStorage.getItem('bloodPressure') || '120/80',
+    heartRate: localStorage.getItem('heartRate') || '72',
+    chronicConditions: JSON.parse(localStorage.getItem('chronicConditions') || '[]'),
+    medications: JSON.parse(localStorage.getItem('medications') || '[]'),
+    allergies: JSON.parse(localStorage.getItem('allergies') || '[]')
+  })
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const [healthRecords, setHealthRecords] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [isAddingRecord, setIsAddingRecord] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load user data
+        const userData = {
+          username: localStorage.getItem('username') || 'User',
+          fullName: localStorage.getItem('fullName') || '',
+          phoneNumber: localStorage.getItem('phoneNumber') || '',
+          role: localStorage.getItem('role') || 'patient',
+          dateOfBirth: localStorage.getItem('dateOfBirth') || '',
+          gender: localStorage.getItem('gender') || '',
+        };
+
+        if (userData.role === 'doctor') {
+          userData.licenseNumber = localStorage.getItem('licenseNumber') || ''
+          userData.specialization = localStorage.getItem('specialization') || ''
+          userData.hospitalName = localStorage.getItem('hospitalName') || ''
+          userData.location = localStorage.getItem('location') || ''
+        }
+
+        setUserData(userData);
+
+        // Load health records
+        const records = await healthRecordService.getRecords();
+        setHealthRecords(records);
+
+        // Load appointments
+        const appointments = await appointmentService.getAppointments();
+        setAppointments(appointments);
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive",
+        });
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handleAddRecord = () => {
+    setIsAddingRecord(true);
+  };
+
+  const handleRecordAdded = async () => {
+    try {
+      const records = await healthRecordService.getRecords();
+      setHealthRecords(records);
+      toast({
+        title: "Record added",
+        description: "Your health record has been added successfully"
+      });
+    } catch (error) {
+      console.error('Error refreshing records:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add health record",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleManageSharing = () => {
+    navigate('/sharing');
+  };
+
+  const handleSecuritySettings = () => {
+    navigate('/security');
+  };
+
+  const handleEmergencyInfo = () => {
+    navigate('/emergency');
+  };
+
+  const handleManageAppointments = () => {
+    navigate('/appointments');
+  };
+
+  const handleHealthAnalytics = () => {
+    navigate('/analytics');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="mt-4 text-gray-500">Loading dashboard...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -78,9 +204,9 @@ const DashboardOverview = () => {
             <Share2 className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            <div className="text-2xl font-bold">{appointments.length}</div>
             <p className="text-xs text-gray-500">
-              2 healthcare providers, 1 organization
+              {appointments.length > 1 ? `${appointments.length - 1} healthcare providers, 1 organization` : '1 healthcare provider'}
             </p>
           </CardContent>
           <CardFooter className="pt-0">
@@ -168,71 +294,7 @@ const DashboardOverview = () => {
                 <CardDescription>Your key health metrics and information</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="overview">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="medications">Medications</TabsTrigger>
-                    <TabsTrigger value="allergies">Allergies</TabsTrigger>
-                  </TabsList>
-
-                  {/* Overview Tab */}
-                  <TabsContent value="overview" className="space-y-4 pt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-500">Blood Type</div>
-                        <div className="flex items-center">
-                          <Droplets className="h-5 w-5 mr-2 text-red-500" />
-                          <span className="text-2xl font-bold">A+</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-500">Height & Weight</div>
-                        <div className="flex items-center">
-                          <Dumbbell className="h-5 w-5 mr-2 text-blue-500" />
-                          <span className="text-lg font-medium">175 cm, 72 kg</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-500">Vital Signs</div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-lg border p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Heart className="h-5 w-5 mr-2 text-red-500" />
-                              <span className="font-medium">Blood Pressure</span>
-                            </div>
-                            <Badge variant="outline" className="text-green-500">Normal</Badge>
-                          </div>
-                          <div className="mt-2 text-2xl font-bold">120/80</div>
-                          <div className="mt-1 text-xs text-gray-500">Last updated: 2 days ago</div>
-                        </div>
-
-                        <div className="rounded-lg border p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Activity className="h-5 w-5 mr-2 text-green-500" />
-                              <span className="font-medium">Heart Rate</span>
-                            </div>
-                            <Badge variant="outline" className="text-green-500">Normal</Badge>
-                          </div>
-                          <div className="mt-2 text-2xl font-bold">72 bpm</div>
-                          <div className="mt-1 text-xs text-gray-500">Last updated: 2 days ago</div>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  {/* Other tabs content */}
-                  <TabsContent value="medications">
-                    {/* Medications content */}
-                  </TabsContent>
-                  <TabsContent value="allergies">
-                    {/* Allergies content */}
-                  </TabsContent>
-                </Tabs>
+                <HealthSummary />
               </CardContent>
             </Card>
 
@@ -267,32 +329,6 @@ const DashboardOverview = () => {
                         Your recent lab results have been uploaded to your records.
                       </p>
                       <p className="text-xs text-gray-400">Yesterday</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 p-1.5 rounded-full bg-amber-100">
-                      <AlertCircle className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">Sharing Request</p>
-                      <p className="text-xs text-gray-500">
-                        Central Hospital has requested access to your medical history.
-                      </p>
-                      <p className="text-xs text-gray-400">2 days ago</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 p-1.5 rounded-full bg-red-100">
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">Access Expired</p>
-                      <p className="text-xs text-gray-500">
-                        Dr. Chen's access to your records has expired.
-                      </p>
-                      <p className="text-xs text-gray-400">3 days ago</p>
                     </div>
                   </div>
                 </div>
@@ -397,15 +433,26 @@ const DashboardOverview = () => {
             </CardHeader>
             <CardContent><UpcomingAppointments limit={10} /></CardContent>
             <CardFooter>
-              <Button className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Schedule New Appointment
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleManageAppointments}
+              >
+                Manage Appointments
               </Button>
             </CardFooter>
-          </Card >
-        </TabsContent >
-      </Tabs >
-    </div >
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Record Modal */}
+      {isAddingRecord && (
+        <AddRecordModal
+          onClose={() => setIsAddingRecord(false)}
+          onRecordAdded={handleRecordAdded}
+        />
+      )}
+    </div>
   )
 }
 
