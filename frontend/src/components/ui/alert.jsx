@@ -1,7 +1,12 @@
-import React from "react"
+import * as React from "react"
 import { cva } from "class-variance-authority"
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
-import { cn } from "../../lib/util"
+// Define cn function directly
+function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
 
 const alertVariants = cva(
   "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
