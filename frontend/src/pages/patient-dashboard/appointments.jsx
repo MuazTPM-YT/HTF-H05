@@ -8,9 +8,22 @@ const Appointments = () => {
   const [viewMode, setViewMode] = useState('card');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showCardMenu, setShowCardMenu] = useState(null);
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newAppointment, setNewAppointment] = useState({
+    doctor: '',
+    specialty: '',
+    type: 'Check-up',
+    date: '',
+    time: '',
+    location: '',
+    address: '',
+    phone: '',
+    isVirtual: false,
+    notes: ''
+  });
+
   // Sample data for appointments with Indian phone numbers
-  const appointments = [
+  const [appointments, setAppointments] = useState([
     {
       id: 1,
       doctor: 'Dr. Sarah Johnson',
@@ -90,7 +103,7 @@ const Appointments = () => {
       rating: 4.6,
       image: null
     }
-  ];
+  ]);
 
   // Filter appointments based on status
   const filteredAppointments = appointments.filter(appointment => {
@@ -110,27 +123,6 @@ const Appointments = () => {
     }
     return 0;
   });
-
-  // Function to get status badge styles
-  const getStatusBadge = (status) => {
-    switch(status) {
-      case 'confirmed':
-        return 'bg-gray-200 text-gray-800';
-      case 'pending':
-        return 'bg-gray-100 text-gray-700';
-      case 'cancelled':
-        return 'bg-gray-300 text-gray-900';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
-  };
-
-  // Function to get appointment type badge styles
-  const getAppointmentTypeBadge = (isVirtual) => {
-    return isVirtual 
-      ? 'bg-gray-100 text-gray-700 border border-gray-200' 
-      : 'bg-gray-100 text-gray-700 border border-gray-200';
-  };
 
   // Handle sort change
   const handleSortChange = (option) => {
@@ -172,8 +164,51 @@ const Appointments = () => {
     setShowCardMenu(null);
   };
 
+  // Handle input change for new appointment form
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setNewAppointment({
+      ...newAppointment,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  // Handle form submission for new appointment
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Create a new appointment object
+    const newAppointmentObj = {
+      id: appointments.length + 1,
+      ...newAppointment,
+      status: 'pending',
+      rating: 0
+    };
+
+    // Add the new appointment to the list
+    setAppointments([...appointments, newAppointmentObj]);
+
+    // Close the modal and reset the form
+    setIsModalOpen(false);
+    setNewAppointment({
+      doctor: '',
+      specialty: '',
+      type: 'Check-up',
+      date: '',
+      time: '',
+      location: '',
+      address: '',
+      phone: '',
+      isVirtual: false,
+      notes: ''
+    });
+
+    // Show success message
+    alert('Appointment has been scheduled successfully!');
+  };
+
   return (
-    <div className="max-w-[1600px] mx-auto px-4 py-8">
+    <div className="max-w-[1600px] mx-auto px-4 py-8" onClick={closeMenus}>
       {/* Page Header */}
       <div className="flex flex-col gap-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -181,7 +216,10 @@ const Appointments = () => {
             <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Appointments</h1>
             <p className="mt-2 text-gray-500">Manage and track your upcoming medical appointments</p>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200 font-medium shadow-sm">
+          <button
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-200 font-medium shadow-sm"
+            onClick={() => setIsModalOpen(true)}
+          >
             <Plus className="h-4 w-4" />
             <span>New Appointment</span>
           </button>
@@ -248,11 +286,10 @@ const Appointments = () => {
                       e.stopPropagation();
                       setFilterStatus(status);
                     }}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
-                      filterStatus === status
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap ${filterStatus === status
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
                   </button>
@@ -272,22 +309,21 @@ const Appointments = () => {
                     <span className="text-gray-700">Sort by: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </button>
-                  
+
                   {isDropdownOpen && (
                     <div className="absolute top-full right-0 mt-1 w-48 bg-white border rounded-lg shadow-lg z-10">
                       <div className="py-1">
                         {['date', 'doctor', 'rating'].map((option) => (
-                          <button 
+                          <button
                             key={option}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSortChange(option);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm ${
-                              sortBy === option 
-                                ? 'bg-gray-50 text-gray-900' 
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
+                            className={`w-full text-left px-4 py-2 text-sm ${sortBy === option
+                              ? 'bg-gray-50 text-gray-900'
+                              : 'text-gray-700 hover:bg-gray-50'
+                              }`}
                           >
                             {option.charAt(0).toUpperCase() + option.slice(1)}
                           </button>
@@ -296,18 +332,17 @@ const Appointments = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex items-center rounded-lg border overflow-hidden bg-gray-50/80">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setViewMode('card');
-                    }} 
-                    className={`p-2 transition-colors ${
-                      viewMode === 'card' 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    }}
+                    className={`p-2 transition-colors ${viewMode === 'card'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect width="7" height="7" x="3" y="3" rx="1" />
@@ -316,16 +351,15 @@ const Appointments = () => {
                       <rect width="7" height="7" x="14" y="14" rx="1" />
                     </svg>
                   </button>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setViewMode('list');
-                    }} 
-                    className={`p-2 transition-colors ${
-                      viewMode === 'list' 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    }}
+                    className={`p-2 transition-colors ${viewMode === 'list'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <line x1="8" y1="6" x2="21" y2="6" />
@@ -376,14 +410,13 @@ const Appointments = () => {
                   viewMode === 'card' ? (
                     <div key={appointment.id} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                       {/* Status Indicator */}
-                      <div className={`h-1 ${
-                        appointment.status === 'confirmed' 
-                          ? 'bg-green-500' 
-                          : appointment.status === 'pending' 
-                          ? 'bg-yellow-500' 
+                      <div className={`h-1 ${appointment.status === 'confirmed'
+                        ? 'bg-green-500'
+                        : appointment.status === 'pending'
+                          ? 'bg-yellow-500'
                           : 'bg-gray-300'
-                      }`} />
-                      
+                        }`} />
+
                       <div className="p-6 group-hover:p-7 transition-all duration-200">
                         {/* Doctor Info */}
                         <div className="flex items-start gap-4 mb-6">
@@ -406,13 +439,12 @@ const Appointments = () => {
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 mt-3">
-                              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                                appointment.status === 'confirmed'
-                                  ? 'bg-green-50 text-green-700'
-                                  : appointment.status === 'pending'
+                              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${appointment.status === 'confirmed'
+                                ? 'bg-green-50 text-green-700'
+                                : appointment.status === 'pending'
                                   ? 'bg-yellow-50 text-yellow-700'
                                   : 'bg-gray-100 text-gray-700'
-                              }`}>
+                                }`}>
                                 {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                               </span>
                               <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
@@ -421,7 +453,7 @@ const Appointments = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Appointment Details */}
                         <div className="space-y-4">
                           <div className="flex items-start">
@@ -431,7 +463,7 @@ const Appointments = () => {
                               <p className="text-xs text-gray-500">{appointment.time}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-start">
                             {appointment.isVirtual ? (
                               <>
@@ -461,12 +493,12 @@ const Appointments = () => {
                               </>
                             )}
                           </div>
-                          
+
                           <div className="flex items-start">
                             <Phone className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
                             <p className="text-sm text-gray-900 truncate">{appointment.phone}</p>
                           </div>
-                          
+
                           {appointment.notes && (
                             <div className="flex items-start bg-gray-50 p-3 rounded-lg">
                               <AlertCircle className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
@@ -474,19 +506,19 @@ const Appointments = () => {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Actions */}
                         <div className="flex gap-2 mt-6">
                           {appointment.status === 'pending' ? (
                             <>
-                              <button 
+                              <button
                                 onClick={() => handleConfirm(appointment.id)}
                                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
                               >
                                 <Check className="h-4 w-4" />
                                 <span>Confirm</span>
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleCancel(appointment.id)}
                                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                               >
@@ -506,11 +538,11 @@ const Appointments = () => {
                             </button>
                           )}
                           <div className="relative">
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleCardMenu(appointment.id);
-                              }} 
+                              }}
                               className="px-3 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors h-full"
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -518,7 +550,7 @@ const Appointments = () => {
                             {showCardMenu === appointment.id && (
                               <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-10">
                                 <div className="py-1">
-                                  <button 
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleReschedule(appointment.id);
@@ -527,7 +559,7 @@ const Appointments = () => {
                                   >
                                     Reschedule Appointment
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCancel(appointment.id);
@@ -558,13 +590,12 @@ const Appointments = () => {
                           <div>
                             <div className="flex items-center flex-wrap gap-2">
                               <h3 className="font-medium text-gray-900">{appointment.doctor}</h3>
-                              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                                appointment.status === 'confirmed'
-                                  ? 'bg-green-50 text-green-700'
-                                  : appointment.status === 'pending'
+                              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${appointment.status === 'confirmed'
+                                ? 'bg-green-50 text-green-700'
+                                : appointment.status === 'pending'
                                   ? 'bg-yellow-50 text-yellow-700'
                                   : 'bg-gray-100 text-gray-700'
-                              }`}>
+                                }`}>
                                 {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                               </span>
                               <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
@@ -574,14 +605,14 @@ const Appointments = () => {
                             <p className="text-sm text-gray-600 mt-0.5">{appointment.specialty} • {appointment.type}</p>
                           </div>
                         </div>
-                        
+
                         {/* Date/Time & Location */}
                         <div className="flex flex-wrap items-center gap-6">
                           <div className="flex items-center">
                             <Calendar className="h-5 w-5 text-gray-400 mr-2" />
                             <span className="text-sm text-gray-900">{appointment.date}, {appointment.time}</span>
                           </div>
-                          
+
                           <div className="flex items-center">
                             {appointment.isVirtual ? (
                               <>
@@ -596,19 +627,19 @@ const Appointments = () => {
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Actions */}
                         <div className="flex gap-2">
                           {appointment.status === 'pending' ? (
                             <>
-                              <button 
+                              <button
                                 onClick={() => handleConfirm(appointment.id)}
                                 className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
                               >
                                 <Check className="h-4 w-4" />
                                 <span>Confirm</span>
                               </button>
-                              <button 
+                              <button
                                 onClick={() => handleCancel(appointment.id)}
                                 className="flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                               >
@@ -628,7 +659,7 @@ const Appointments = () => {
                             </button>
                           )}
                           <div className="relative">
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleCardMenu(appointment.id);
@@ -640,7 +671,7 @@ const Appointments = () => {
                             {showCardMenu === appointment.id && (
                               <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-10">
                                 <div className="py-1">
-                                  <button 
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleReschedule(appointment.id);
@@ -649,7 +680,7 @@ const Appointments = () => {
                                   >
                                     Reschedule Appointment
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCancel(appointment.id);
@@ -672,6 +703,189 @@ const Appointments = () => {
           </div>
         </div>
       </div>
+
+      {/* New Appointment Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+            <div
+              className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900">Schedule New Appointment</h3>
+                  <p className="mt-1 text-sm text-gray-500">Fill in the details to book your appointment</p>
+                </div>
+                <form onSubmit={handleSubmit}>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label htmlFor="doctor" className="block text-sm font-medium text-gray-700">Doctor Name</label>
+                      <input
+                        type="text"
+                        id="doctor"
+                        name="doctor"
+                        value={newAppointment.doctor}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="specialty" className="block text-sm font-medium text-gray-700">Specialty</label>
+                      <input
+                        type="text"
+                        id="specialty"
+                        name="specialty"
+                        value={newAppointment.specialty}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="type" className="block text-sm font-medium text-gray-700">Appointment Type</label>
+                      <select
+                        id="type"
+                        name="type"
+                        value={newAppointment.type}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                        required
+                      >
+                        <option value="Check-up">Check-up</option>
+                        <option value="Consultation">Consultation</option>
+                        <option value="Follow-up">Follow-up</option>
+                        <option value="Physical Therapy">Physical Therapy</option>
+                        <option value="Annual Check-up">Annual Check-up</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date</label>
+                        <input
+                          type="date"
+                          id="date"
+                          name="date"
+                          value={newAppointment.date}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="time" className="block text-sm font-medium text-gray-700">Time</label>
+                        <input
+                          type="time"
+                          id="time"
+                          name="time"
+                          value={newAppointment.time}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="isVirtual"
+                        name="isVirtual"
+                        checked={newAppointment.isVirtual}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      />
+                      <label htmlFor="isVirtual" className="ml-2 block text-sm text-gray-700">Virtual Appointment</label>
+                    </div>
+
+                    <div>
+                      <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                        {newAppointment.isVirtual ? 'Platform' : 'Hospital/Clinic Name'}
+                      </label>
+                      <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value={newAppointment.location}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                        placeholder={newAppointment.isVirtual ? 'e.g. Zoom, Google Meet' : ''}
+                        required
+                      />
+                    </div>
+
+                    {!newAppointment.isVirtual && (
+                      <div>
+                        <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
+                        <input
+                          type="text"
+                          id="address"
+                          name="address"
+                          value={newAppointment.address}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Contact Number</label>
+                      <input
+                        type="text"
+                        id="phone"
+                        name="phone"
+                        value={newAppointment.phone}
+                        onChange={handleInputChange}
+                        placeholder="e.g. +91 98765 43210"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes</label>
+                      <textarea
+                        id="notes"
+                        name="notes"
+                        value={newAppointment.notes}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                        placeholder="Any special requirements or information"
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90"
+                    >
+                      Schedule Appointment
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
