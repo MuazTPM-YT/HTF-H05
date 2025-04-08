@@ -1,14 +1,14 @@
 import React from 'react';
 
-const Button = ({ 
-  children, 
+const Button = React.forwardRef(({
+  children,
   variant = 'default',
   size = 'default',
   className = '',
-  ...props 
-}) => {
+  ...props
+}, ref) => {
   const baseStyles = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50";
-  
+
   const variants = {
     default: "bg-blue-600 text-white hover:bg-blue-700",
     secondary: "bg-purple-600 text-white hover:bg-purple-700",
@@ -18,20 +18,23 @@ const Button = ({
     success: "bg-green-600 text-white hover:bg-green-700",
     warning: "bg-amber-600 text-white hover:bg-amber-700",
   };
-  
+
   const sizes = {
     default: "h-9 px-4 py-2",
     sm: "h-8 rounded-md px-3 text-xs",
     lg: "h-10 rounded-md px-8",
   };
-  
+
   const classes = `${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`;
-  
+
   return (
-    <button className={classes} {...props}>
+    <button className={classes} ref={ref} {...props}>
       {children}
     </button>
   );
-};
+});
+
+// Add a display name for better debugging
+Button.displayName = "Button";
 
 export { Button };

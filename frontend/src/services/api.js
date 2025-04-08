@@ -176,9 +176,15 @@ export const getUserProfile = async () => {
     return { username: localStorage.getItem('username') || 'User' };
 };
 
+// Export the api instance and auth functions
 export default {
+    api,
     register,
     login,
     logout,
-    getUserProfile
+    getUserProfile,
+    get: api.get,
+    post: api.post,
+    put: api.put,
+    delete: api.delete
 }; 
