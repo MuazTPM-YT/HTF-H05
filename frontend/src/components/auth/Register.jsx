@@ -11,6 +11,7 @@ import { Eye, EyeOff, Loader2, AlertCircle, User, UserPlus } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
 import AuthLayout from "../layouts/auth-layout"
 import { useNavigate, Link } from "react-router-dom"
+import api from "../../services/api"
 
 function Register() {
   const [role, setRole] = useState('patient')
@@ -116,50 +117,55 @@ function Register() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (!validateForm()) return;
+    setIsLoading(true);
 
-    if (!validateForm()) return
-
-    setIsLoading(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const userData = {
+        username: email,
+        password: password,
+        email: email,
+        first_name: fullName.split(' ')[0] || '',
+        last_name: fullName.split(' ').slice(1).join(' ') || '',
+        date_of_birth: dateOfBirth,
+        gender: gender,
+        role: role,
+        phone_number: phoneNumber,
+      };
 
-      console.log('Registration successful', {
-        role,
-        fullName,
-        email,
-        password,
-        phoneNumber,
-        ...(role === 'patient' && {
-          dateOfBirth,
-          gender
-        }),
-        ...(role === 'doctor' && {
-          licenseNumber,
-          specialization,
-          hospitalName,
-          location
-        })
-      })
+      if (role === 'doctor') {
+        userData.license_number = licenseNumber;
+        userData.specialization = specialization;
+        userData.hospital_name = hospitalName;
+        userData.location = location;
+      }
+
+      localStorage.setItem('fullName', fullName);
+      localStorage.setItem('email', email);
+      localStorage.setItem('password', email);
+      localStorage.setItem('phone_number', phoneNumber);
+      localStorage.setItem('role', role);
+
+      await api.register(userData);
 
       toast({
         title: "Registration successful",
         description: "Your account has been created",
-      })
+      });
 
-      // Navigate to login page after successful registration
-      navigate('/login')
+      navigate('/login');
 
     } catch (error) {
       toast({
         title: "Registration failed",
-        description: "Please try again later",
+        description: error.message || "Please try again later",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const specializations = [
     "Cardiology",

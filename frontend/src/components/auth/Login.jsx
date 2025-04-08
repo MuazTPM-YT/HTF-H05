@@ -11,6 +11,8 @@ import { Eye, EyeOff, Loader2, AlertCircle, User, UserPlus } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
 import AuthLayout from "../layouts/auth-layout"
 import { useNavigate, Link } from "react-router-dom"
+import { ACCESS_TOKEN, REFRESH_TOKEN } from '../../constants'
+import axios from "axios"
 
 function Login() {
     const [role, setRole] = useState('patient')
@@ -20,12 +22,12 @@ function Login() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [phoneNumber, setPhoneNumber] = useState("")
-    const [dateOfBirth, setDateOfBirth] = useState("")
-    const [gender, setGender] = useState("")
+    const [_dateOfBirth, _setDateOfBirth] = useState("")
+    const [_gender, _setGender] = useState("")
     const [licenseNumber, setLicenseNumber] = useState("")
     const [specialization, setSpecialization] = useState("")
-    const [hospitalName, setHospitalName] = useState("")
-    const [location, setLocation] = useState("")
+    const [_hospitalName, _setHospitalName] = useState("")
+    const [_location, _setLocation] = useState("")
     const [rememberMe, setRememberMe] = useState(false)
     const [errors, setErrors] = useState({})
     const { toast } = useToast()
@@ -38,76 +40,149 @@ function Login() {
 
     const validateForm = () => {
         const newErrors = {}
+        console.log("Validating form with values:", {
+            email,
+            password
+        });
 
-        if (!fullName) newErrors.fullName = "Full name is required"
-        if (!email) newErrors.email = "Email is required"
-        else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Invalid email format"
-
-        if (!password) newErrors.password = "Password is required"
-        else if (password.length < 8) newErrors.password = "Password must be at least 8 characters"
-
-        if (!phoneNumber) newErrors.phoneNumber = "Phone number is required"
-
-        if (role === 'patient') {
-            if (!dateOfBirth) newErrors.dateOfBirth = "Date of birth is required"
-            if (!gender) newErrors.gender = "Please select your gender"
+        // For login, we only strictly need username (email) and password to match backend requirements
+        if (!email) {
+            newErrors.email = "Email is required";
+            console.log("Validation failed: missing email");
+        } else if (!/\S+@\S+\.\S+/.test(email)) {
+            newErrors.email = "Invalid email format";
+            console.log("Validation failed: invalid email format");
         }
 
-        if (role === 'doctor') {
-            if (!licenseNumber) newErrors.licenseNumber = "License number is required"
-            if (!specialization) newErrors.specialization = "Specialization is required"
-            if (!location) newErrors.location = "Location is required"
+        if (!password) {
+            newErrors.password = "Password is required";
+            console.log("Validation failed: missing password");
+        } else if (password.length < 3) { // Relaxed password requirement for testing
+            newErrors.password = "Password is too short";
+            console.log("Validation failed: password too short");
         }
 
-        setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
+        // Other fields are NOT required for login in our simplified version
+        // This makes testing easier while connecting to the backend
+
+        setErrors(newErrors);
+        const isValid = Object.keys(newErrors).length === 0;
+        console.log("Form validation result:", isValid ? "PASSED" : "FAILED", newErrors);
+        return isValid;
     }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
+    const handleSubmit = async () => {
+        // No parameter needed since e.preventDefault() is now called in the form's onSubmit handler
 
-        if (!validateForm()) return
+        console.log('Handle submit function called');
 
-        setIsLoading(true)
+        // Double-check form validation
+        if (!validateForm()) {
+            console.log('Form validation failed');
+            setIsLoading(false); // Make sure to set loading to false if validation fails
+            return;
+        }
+
+        console.log('Form validation passed, proceeding with login');
+
         try {
-            await new Promise((resolve) => setTimeout(resolve, 1500))
+            // IMPORTANT: Only send username and password to the token endpoint
+            const credentials = {
+                username: email,
+                password: password
+            };
 
-            console.log('Registration successful', {
-                role,
-                fullName,
-                email,
-                password,
-                phoneNumber,
-                ...(role === 'patient' && {
-                    dateOfBirth,
-                    gender
-                }),
-                ...(role === 'doctor' && {
-                    licenseNumber,
-                    specialization,
-                    hospitalName,
-                    location
-                })
-            })
+            console.log('Sending login request with credentials:', credentials);
 
-            toast({
-                title: "Registration successful",
-                description: "Your account has been created",
-            })
+            // Make the API call with just username/password
+            // Use axios directly if needed to debug
+            try {
+                const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/token/`, credentials, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
 
-            // Navigate to dashboard or home page after successful login
-            navigate('/dashboard')
+                console.log('Login API response:', response.status, response.data);
+
+                // Extract tokens
+                const { access, refresh } = response.data;
+
+                // Store tokens
+                localStorage.setItem(ACCESS_TOKEN, access);
+                localStorage.setItem(REFRESH_TOKEN, refresh);
+
+                // Store fullName and other fields even if they're not required for validation
+                localStorage.setItem('username', email);
+                if (fullName) localStorage.setItem('fullName', fullName);
+                if (phoneNumber) localStorage.setItem('phoneNumber', phoneNumber);
+                localStorage.setItem('role', role);
+
+                if (role === 'doctor' && licenseNumber && specialization) {
+                    localStorage.setItem('licenseNumber', licenseNumber);
+                    localStorage.setItem('specialization', specialization);
+                }
+
+                console.log('Login successful, showing toast notification');
+
+                toast({
+                    title: "Login successful",
+                    description: "Welcome back!",
+                });
+
+                console.log('Navigating to dashboard in 1 second');
+
+                // Use setTimeout to ensure toast is shown before navigation
+                setTimeout(() => {
+                    console.log('Executing navigation to /dashboard');
+                    navigate('/dashboard');
+                }, 1000);
+
+            } catch (apiError) {
+                console.error('API call error:', apiError);
+
+                if (apiError.response) {
+                    console.error('Error response:', apiError.response.status, apiError.response.data);
+                    throw new Error(apiError.response.data?.detail || 'Login failed');
+                } else if (apiError.request) {
+                    console.error('No response received');
+
+                    // For testing purposes, you can uncomment this to bypass backend
+                    /*
+                    console.log('Bypassing backend for testing - storing dummy tokens');
+                    localStorage.setItem(ACCESS_TOKEN, 'dummy-token');
+                    localStorage.setItem(REFRESH_TOKEN, 'dummy-refresh');
+                    localStorage.setItem('username', email);
+                    if (fullName) localStorage.setItem('fullName', fullName);
+                    
+                    toast({
+                        title: "Login successful (test mode)",
+                        description: "Welcome back!",
+                    });
+                    
+                    setTimeout(() => {
+                        navigate('/dashboard');
+                    }, 1000);
+                    
+                    return;
+                    */
+
+                    throw new Error('No response from server. Check your network connection.');
+                } else {
+                    throw apiError;
+                }
+            }
 
         } catch (error) {
+            console.error('Login error:', error.message);
             toast({
-                title: "Registration failed",
-                description: "Please try again later",
+                title: "Login failed",
+                description: error.message || "Invalid email or password",
                 variant: "destructive",
-            })
-        } finally {
-            setIsLoading(false)
+            });
+            setIsLoading(false);
         }
-    }
+    };
 
     const specializations = [
         "Cardiology",
@@ -155,7 +230,27 @@ function Login() {
                 </div>
 
                 <Card className="border-gray-200 shadow-md">
-                    <form onSubmit={handleSubmit}>
+                    <form
+                        onSubmit={(e) => {
+                            console.log('Form submitted');
+                            e.preventDefault(); // Explicitly prevent default form behavior
+
+                            // Set loading state immediately for visual feedback
+                            setIsLoading(true);
+
+                            try {
+                                handleSubmit();
+                            } catch (err) {
+                                console.error('Form submission error:', err);
+                                setIsLoading(false);
+                                toast({
+                                    title: "Error",
+                                    description: "Something went wrong with form submission. Please try again.",
+                                    variant: "destructive",
+                                });
+                            }
+                        }}
+                    >
                         <CardContent className="space-y-4 pt-5">
                             <div className="space-y-1.5">
                                 <Label htmlFor="fullName" className="text-gray-700">Full Name</Label>
