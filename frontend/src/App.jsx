@@ -6,17 +6,18 @@ import Sidebar from './components/dashboard/sidebar';
 import LoginPage from './components/auth/Login';
 import RegisterPage from './components/auth/Register';
 import AuthLayout from './components/layouts/auth-layout';
+import OnboardingFlow from './pages/patient-dashboard/onboarding';
 
-const Dashboard = React.lazy(() => import('./pages/dashboard'));
-const HealthRecords = React.lazy(() => import('./pages/health-records'));
-const SharingControls = React.lazy(() => import('./pages/sharing'));
-const SecuritySettings = React.lazy(() => import('./pages/security'));
-const EmergencyAccess = React.lazy(() => import('./pages/emergency'));
-const Providers = React.lazy(() => import('./pages/providers'));
-const Appointments = React.lazy(() => import('./pages/appointments'));
-const Analytics = React.lazy(() => import('./pages/analytics'));
-const Profile = React.lazy(() => import('./pages/profile'));
-const Settings = React.lazy(() => import('./pages/settings'));
+const Dashboard = React.lazy(() => import('./pages/patient-dashboard/dashboard'));
+const HealthRecords = React.lazy(() => import('./pages/patient-dashboard/health-records'));
+const SharingControls = React.lazy(() => import('./pages/patient-dashboard/sharing'));
+const SecuritySettings = React.lazy(() => import('./pages/patient-dashboard/security'));
+const EmergencyAccess = React.lazy(() => import('./pages/patient-dashboard/emergency'));
+const Providers = React.lazy(() => import('./pages/patient-dashboard/providers'));
+const Appointments = React.lazy(() => import('./pages/patient-dashboard/appointments'));
+const Analytics = React.lazy(() => import('./pages/patient-dashboard/analytics'));
+const Profile = React.lazy(() => import('./pages/patient-dashboard/profile'));
+const Settings = React.lazy(() => import('./pages/patient-dashboard/settings'));
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-screen">
@@ -51,16 +52,14 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Unauthenticated routes */}
         <Route path="/login" element={
-          <AuthLayout>
-            <LoginPage />
-          </AuthLayout>
+          <LoginPage />
         } />
         <Route path="/register" element={
-          <AuthLayout>
-            <RegisterPage />
-          </AuthLayout>
+          <RegisterPage />
+        } />
+        <Route path="/onboarding" element={
+          <OnboardingFlow />
         } />
 
         {/* Authenticated (dashboard) routes */}
