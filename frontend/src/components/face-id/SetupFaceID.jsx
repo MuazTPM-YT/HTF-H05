@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Check, X, Loader2 } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import axios from 'axios';
 import { useToast } from '../../hooks/use-toast';
 
-// API base URL configuration
-const API_BASE_URL = 'http://localhost:8000'; // Adjust this to your backend URL
+const API_BASE_URL = 'http://localhost:8000';
 
-// Create axios instance with default config
 const api = axios.create({
     baseURL: API_BASE_URL,
     timeout: 5000,
@@ -18,23 +16,21 @@ const api = axios.create({
 });
 
 const SetupFaceID = ({ onComplete, onCancel }) => {
+    const totalImages = 500;
     const [isCapturing, setIsCapturing] = useState(false);
     const [progress, setProgress] = useState(0);
     const [imagesCaptured, setImagesCaptured] = useState(0);
     const [eyesOpen, setEyesOpen] = useState(true);
-    const [backendAvailable, setBackendAvailable] = useState(false); // Default to false until confirmed
+    const [backendAvailable, setBackendAvailable] = useState(false);
     const [isCheckingBackend, setIsCheckingBackend] = useState(true);
+
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
     const capturedImages = useRef([]);
     const { toast } = useToast();
 
-    // Total images: 500 (250 with eyes open, 250 with eyes closed)
-    const totalImages = 500;
-
     useEffect(() => {
-        // Check if backend is available
         const checkBackend = async () => {
             try {
                 setIsCheckingBackend(true);
@@ -56,14 +52,12 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
             }
         };
 
-        // Start camera and check backend
         const initialize = async () => {
             await startCamera();
             await checkBackend();
         };
 
         initialize();
-
         return () => {
             stopCamera();
         };
@@ -100,26 +94,21 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
 
     const captureImage = () => {
         if (!videoRef.current || !canvasRef.current) return null;
-
         const video = videoRef.current;
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
-
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Return Base64 image data (excluding dataURL header)
         return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
     };
 
     const sendImagesToBackend = async () => {
-        // If backend is not available, fall back to offline mode
         if (!backendAvailable) {
             localStorage.setItem('faceIDSetupComplete', 'true');
             localStorage.setItem('faceIDSetupTime', new Date().toISOString());
             localStorage.setItem('faceIDImagesCaptures', capturedImages.current.length.toString());
-
             toast({
                 title: "Success",
                 description: "Face ID setup completed locally (offline mode)",
@@ -129,7 +118,7 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
         }
 
         try {
-            const BATCH_SIZE = 50;
+            const BATCH_SIZE = 10;
             let successfulBatches = 0;
             let lastError = null;
 
@@ -141,10 +130,7 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
                         images: batch,
                         user_id: localStorage.getItem('username') || 'test_user'
                     });
-
                     console.log('Batch response:', response.data);
-
-                    // Consider a batch successful when the response returns a message and has no error.
                     if (response.data.message && !response.data.error) {
                         successfulBatches++;
                     } else if (response.data.error) {
@@ -157,12 +143,10 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
                 }
             }
 
-            // Instead of throwing an error immediately if no batch was successful,
-            // fallback to offline storage and inform the user.
             if (successfulBatches > 0) {
                 toast({
                     title: "Success",
-                    description: `Face ID setup completed successfully with ${successfulBatches} successful batches.`,
+                    description: `Face ID setup completed with ${successfulBatches} successful batches.`,
                 });
                 onComplete();
             } else {
@@ -178,10 +162,12 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
             }
         } catch (error) {
             console.error('Error sending images to backend:', error);
-            if (error.message.includes('Network Error') ||
+            if (
+                error.message.includes('Network Error') ||
                 error.code === 'ECONNABORTED' ||
                 error.message.includes('Connection refused') ||
-                (error.response && error.response.status >= 500)) {
+                (error.response && error.response.status >= 500)
+            ) {
                 toast({
                     title: "Connection Error",
                     description: "Could not connect to the facial recognition server. Your data will be stored locally.",
@@ -216,15 +202,17 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
                 capturedImages.current.push(imageData);
             }
 
-            setProgress(Math.round(((i + 1) / totalImages) * 100));
+            const newProgress = Math.round(((i + 1) / totalImages) * 100);
+            setProgress(newProgress);
             setImagesCaptured(i + 1);
 
-            if (i === 249) {
+            console.log(`Captured image ${i + 1}/${totalImages}, progress: ${newProgress}%`);
+
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            if (i === Math.floor(totalImages / 2)) {
                 setEyesOpen(false);
             }
-
-            // Delay between captures
-            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         setIsCapturing(false);
@@ -254,12 +242,7 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
                     )}
 
                     <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            className="w-full h-full object-cover"
-                        />
+                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                         <canvas ref={canvasRef} className="hidden" />
                     </div>
 
@@ -277,11 +260,9 @@ const SetupFaceID = ({ onComplete, onCancel }) => {
                     </div>
 
                     <div className="text-center text-sm text-gray-600">
-                        {eyesOpen ? (
-                            <p>Please keep your eyes open and rotate your head slowly</p>
-                        ) : (
-                            <p>Please close your eyes and rotate your head slowly</p>
-                        )}
+                        {eyesOpen
+                            ? <p>Please keep your eyes open and rotate your head slowly</p>
+                            : <p>Please close your eyes and rotate your head slowly</p>}
                     </div>
 
                     <div className="flex justify-center space-x-4">
