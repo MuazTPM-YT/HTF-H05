@@ -1,14 +1,15 @@
 import React, { useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-import Sidebar from './components/dashboard/sidebar';
-
 import LoginPage from './components/auth/Login';
 import RegisterPage from './components/auth/Register';
 import AuthLayout from './components/layouts/auth-layout';
-import OnboardingFlow from './pages/patient-dashboard/onboarding';
+import OnboardingFlow from './pages/patient-dashboard/Onboarding';
 
-const Dashboard = React.lazy(() => import('./pages/patient-dashboard/dashboard'));
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Sidebar from './components/dashboard/sidebar';
+
+const DashboardOverview = React.lazy(() => import('./components/dashboard/dashboard-overview'));
 const HealthRecords = React.lazy(() => import('./pages/patient-dashboard/health-records'));
 const SharingControls = React.lazy(() => import('./pages/patient-dashboard/sharing'));
 const SecuritySettings = React.lazy(() => import('./pages/patient-dashboard/security'));

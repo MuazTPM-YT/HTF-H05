@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import AuthLogContract from '../contracts/AuthLogContract.json';
 
 /**
- * Service for interacting with Ethereum blockchain
+ * Production-ready service for interacting with Ethereum blockchain
  */
 class EthereumService {
     constructor() {
@@ -11,6 +11,7 @@ class EthereumService {
         this.contract = null;
         this.isInitialized = false;
         this.networkName = null;
+        this.lastError = null;
     }
 
     /**
@@ -18,60 +19,84 @@ class EthereumService {
      * @returns {Promise<boolean>} Whether initialization was successful
      */
     async initialize() {
+        // If already initialized successfully, return immediately
+        if (this.isInitialized && this.provider && this.signer && this.contract) {
+            return true;
+        }
+
+        this.lastError = null;
+
         try {
-            console.log("Attempting to initialize Ethereum service...");
-
             // Check if MetaMask is installed
-            if (window.ethereum) {
-                console.log("MetaMask detected, requesting accounts...");
+            if (!window.ethereum) {
+                this.lastError = 'MetaMask not detected. Please install MetaMask extension.';
+                return false;
+            }
 
-                try {
-                    // Explicitly request accounts - this will trigger the MetaMask popup
-                    const accounts = await window.ethereum.request({
-                        method: 'eth_requestAccounts',
-                        params: []
-                    });
+            try {
+                // Request accounts with timeout
+                const accountsPromise = window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
 
-                    console.log("MetaMask accounts:", accounts);
+                // Set timeout for the request to prevent hanging
+                const accounts = await this._withTimeout(accountsPromise, 10000, 'Account request timeout');
 
-                    if (accounts && accounts.length > 0) {
-                        // Get the provider from MetaMask - ethers v6 syntax
-                        this.provider = new ethers.BrowserProvider(window.ethereum);
-
-                        // Get the signer (current account)
-                        this.signer = await this.provider.getSigner();
-
-                        // Get the network
-                        const network = await this.provider.getNetwork();
-                        this.networkName = network.name;
-                        console.log("Connected to network:", this.networkName);
-
-                        // Initialize the contract
-                        this.contract = new ethers.Contract(
-                            AuthLogContract.contractAddress,
-                            AuthLogContract.abi,
-                            this.signer
-                        );
-
-                        this.isInitialized = true;
-                        console.log('Ethereum service initialized successfully');
-                        return true;
-                    } else {
-                        console.error("No accounts returned from MetaMask");
-                        return false;
-                    }
-                } catch (requestError) {
-                    console.error("Error requesting accounts:", requestError);
+                if (!accounts || accounts.length === 0) {
+                    this.lastError = 'No accounts available. Please unlock MetaMask.';
                     return false;
                 }
-            } else {
-                console.error('MetaMask not detected! Please install MetaMask extension.');
+
+                // Create provider
+                this.provider = new ethers.BrowserProvider(window.ethereum);
+
+                // Get signer with timeout
+                const signerPromise = this.provider.getSigner();
+                this.signer = await this._withTimeout(signerPromise, 5000, 'Signer request timeout');
+
+                // Get network information with timeout
+                const networkPromise = this.provider.getNetwork();
+                const network = await this._withTimeout(networkPromise, 5000, 'Network request timeout');
+                this.networkName = network.name;
+
+                // Validate contract configuration
+                if (!AuthLogContract.contractAddress || !AuthLogContract.abi) {
+                    this.lastError = 'Invalid contract configuration';
+                    return false;
+                }
+
+                // Initialize the contract
+                this.contract = new ethers.Contract(
+                    AuthLogContract.contractAddress,
+                    AuthLogContract.abi,
+                    this.signer
+                );
+
+                this.isInitialized = true;
+                return true;
+            } catch (error) {
+                this.lastError = error.message || 'Failed to initialize Ethereum connection';
                 return false;
             }
         } catch (error) {
-            console.error('Failed to initialize Ethereum service:', error);
+            this.lastError = error.message || 'Unexpected error during initialization';
             return false;
         }
+    }
+
+    /**
+     * Utility method to add timeout to a promise
+     * @param {Promise} promise - The promise to add timeout to
+     * @param {number} timeoutMs - Timeout in milliseconds
+     * @param {string} timeoutMessage - Message to use if timeout occurs
+     * @returns {Promise} A promise that will reject if the timeout is exceeded
+     */
+    async _withTimeout(promise, timeoutMs, timeoutMessage) {
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+        });
+
+        return Promise.race([promise, timeoutPromise]);
     }
 
     /**
@@ -80,6 +105,11 @@ class EthereumService {
      */
     async reconnect() {
         this.isInitialized = false;
+        this.provider = null;
+        this.signer = null;
+        this.contract = null;
+        this.lastError = null;
+
         return await this.initialize();
     }
 
@@ -89,13 +119,20 @@ class EthereumService {
      */
     async getAccount() {
         if (!this.isInitialized) {
-            await this.initialize();
+            const success = await this.initialize();
+            if (!success) {
+                return null;
+            }
         }
 
         try {
-            return await this.signer.getAddress();
+            return await this._withTimeout(
+                this.signer.getAddress(),
+                3000,
+                'Get address timeout'
+            );
         } catch (error) {
-            console.error('Failed to get account:', error);
+            this.lastError = error.message || 'Failed to get account';
             return null;
         }
     }
@@ -103,18 +140,24 @@ class EthereumService {
     /**
      * Log an authentication event to the blockchain
      * @param {Object} eventData The event data to log
-     * @returns {Promise<Object>} The transaction receipt
+     * @returns {Promise<Object>} The transaction data
      */
     async logAuthEvent(eventData) {
         if (!this.isInitialized) {
             const success = await this.initialize();
             if (!success) {
-                throw new Error('Failed to initialize Ethereum service');
+                throw new Error(this.lastError || 'Failed to initialize Ethereum service');
             }
         }
 
         try {
-            const tx = await this.contract.logAuthEvent(
+            // Validate contract is available
+            if (!this.contract || !this.contract.logAuthEvent) {
+                throw new Error('Contract not properly initialized');
+            }
+
+            // Send transaction with timeout
+            const txPromise = this.contract.logAuthEvent(
                 eventData.action,
                 eventData.username,
                 eventData.role,
@@ -122,19 +165,38 @@ class EthereumService {
                 eventData.ipAddress
             );
 
-            console.log('Transaction sent:', tx.hash);
+            const tx = await this._withTimeout(
+                txPromise,
+                10000,
+                'Transaction submission timeout'
+            );
 
-            // Wait for the transaction to be mined
-            const receipt = await tx.wait();
-            console.log('Transaction confirmed in block:', receipt.blockNumber);
-
-            return {
+            // Create an early response in case waiting for confirmation takes too long
+            const earlyResponse = {
                 txHash: tx.hash,
-                blockNumber: receipt.blockNumber,
+                blockNumber: 'pending',
                 timestamp: new Date().toLocaleString()
             };
+
+            try {
+                // Wait for confirmation with timeout
+                const receipt = await this._withTimeout(
+                    tx.wait(),
+                    15000,
+                    'Transaction confirmation timeout'
+                );
+
+                return {
+                    txHash: tx.hash,
+                    blockNumber: receipt.blockNumber,
+                    timestamp: new Date().toLocaleString()
+                };
+            } catch (confirmError) {
+                // Return early response if confirmation times out
+                return earlyResponse;
+            }
         } catch (error) {
-            console.error('Failed to log auth event:', error);
+            this.lastError = error.message || 'Failed to log auth event';
             throw error;
         }
     }
@@ -147,12 +209,22 @@ class EthereumService {
         if (!this.isInitialized) {
             const success = await this.initialize();
             if (!success) {
-                throw new Error('Failed to initialize Ethereum service');
+                throw new Error(this.lastError || 'Failed to initialize Ethereum service');
             }
         }
 
         try {
-            const logs = await this.contract.getLatestEvents();
+            // Validate contract
+            if (!this.contract || !this.contract.getLatestEvents) {
+                throw new Error('Contract not properly initialized');
+            }
+
+            // Get logs with timeout
+            const logs = await this._withTimeout(
+                this.contract.getLatestEvents(),
+                10000,
+                'Getting logs timeout'
+            );
 
             // Format the logs
             return logs.map((log, index) => ({
@@ -168,7 +240,7 @@ class EthereumService {
                 timestamp: new Date(log.timestamp * 1000).toLocaleString(),
             }));
         } catch (error) {
-            console.error('Failed to get auth logs:', error);
+            this.lastError = error.message || 'Failed to get auth logs';
             throw error;
         }
     }
@@ -179,6 +251,56 @@ class EthereumService {
      */
     getNetworkName() {
         return this.networkName || 'Not connected';
+    }
+
+    /**
+     * Get the last error message
+     * @returns {string} The last error message
+     */
+    getLastError() {
+        return this.lastError;
+    }
+
+    /**
+     * Get account balance in ETH
+     * @param {string} address - The account address to check
+     * @returns {Promise<number>} The account balance in ETH
+     */
+    async getBalance(address) {
+        try {
+            if (!address) {
+                address = await this.getAccount();
+            }
+
+            if (!address) {
+                return 0;
+            }
+
+            if (!this.provider) {
+                // If we don't have a provider yet but have an address, try to create one
+                if (window.ethereum) {
+                    this.provider = new ethers.BrowserProvider(window.ethereum);
+                } else {
+                    return 0;
+                }
+            }
+
+            // Get balance with timeout
+            const balancePromise = this.provider.getBalance(address);
+            const balanceWei = await this._withTimeout(
+                balancePromise,
+                5000,
+                'Balance check timeout'
+            );
+
+            // Convert from Wei to ETH
+            const balanceEth = parseFloat(ethers.formatEther(balanceWei));
+            return balanceEth;
+        } catch (error) {
+            this.lastError = error.message || 'Failed to get balance';
+            console.error('Error checking balance:', error);
+            return 0;
+        }
     }
 }
 

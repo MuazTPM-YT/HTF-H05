@@ -1,4 +1,5 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Card,
   CardContent,
@@ -33,7 +34,8 @@ import {
   Heart,
   Droplets,
   Dumbbell,
-  User
+  User,
+  LogOut
 } from "lucide-react"
 
 import { RecentActivityList } from "./recent-activity-list"
@@ -204,9 +206,15 @@ const DashboardOverview = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-gray-500">Welcome back to your secure health records</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-gray-500">Welcome back, {userData?.fullName || 'User'}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-1">
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
+        </Button>
       </div>
 
       {/* Top Cards */}
@@ -218,11 +226,16 @@ const DashboardOverview = () => {
             <FileText className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{healthRecords.length}</div>
             <p className="text-xs text-gray-500">+3 added this month</p>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" className="w-full justify-center" size="sm">
+            <Button
+              variant="ghost"
+              className="w-full justify-center"
+              size="sm"
+              onClick={handleAddRecord}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Record
             </Button>
@@ -242,7 +255,12 @@ const DashboardOverview = () => {
             </p>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" className="w-full justify-between" size="sm">
+            <Button
+              variant="ghost"
+              className="w-full justify-between"
+              size="sm"
+              onClick={handleManageSharing}
+            >
               Manage Sharing
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -263,7 +281,12 @@ const DashboardOverview = () => {
             <p className="text-xs text-gray-500">Last verified 2 hours ago</p>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" className="w-full justify-between" size="sm">
+            <Button
+              variant="ghost"
+              className="w-full justify-between"
+              size="sm"
+              onClick={handleSecuritySettings}
+            >
               Security Settings
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -286,7 +309,12 @@ const DashboardOverview = () => {
             <p className="text-xs text-gray-500">PIN: **** (Last updated 30 days ago)</p>
           </CardContent>
           <CardFooter className="pt-0">
-            <Button variant="ghost" className="w-full justify-between" size="sm">
+            <Button
+              variant="ghost"
+              className="w-full justify-between"
+              size="sm"
+              onClick={handleEmergencyInfo}
+            >
               Update Emergency Info
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -380,9 +408,15 @@ const DashboardOverview = () => {
               </CardHeader>
               <CardContent><UpcomingAppointments limit={3} /></CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">Manage Appointments</Button>
-              </CardFooter >
-            </Card >
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleManageAppointments}
+                >
+                  Manage Appointments
+                </Button>
+              </CardFooter>
+            </Card>
 
             <Card className="border-gray-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -394,9 +428,15 @@ const DashboardOverview = () => {
               </CardHeader>
               <CardContent><RecentActivityList limit={3} /></CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">View All Activity</Button>
-              </CardFooter >
-            </Card >
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate('/activity')}
+                >
+                  View All Activity
+                </Button>
+              </CardFooter>
+            </Card>
 
             <Card className="border-gray-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -437,16 +477,22 @@ const DashboardOverview = () => {
                     <div className="bg-green-500 h-full rounded-full" style={{ width: '85%' }}></div>
                   </div>
                 </div>
-              </CardContent >
+              </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">View Health Analytics</Button>
-              </CardFooter >
-            </Card >
-          </div >
-        </TabsContent >
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleHealthAnalytics}
+                >
+                  View Health Analytics
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* Activity Tab */}
-        < TabsContent value="recent-activity" >
+        <TabsContent value="recent-activity">
           <Card className="border-gray-200">
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
@@ -454,10 +500,10 @@ const DashboardOverview = () => {
             </CardHeader>
             <CardContent><RecentActivityList limit={10} /></CardContent>
           </Card>
-        </ >
+        </TabsContent>
 
         {/* Appointments Tab */}
-        < TabsContent value="appointments" >
+        <TabsContent value="appointments">
           <Card className="border-gray-200">
             <CardHeader>
               <CardTitle>Upcoming Appointments</CardTitle>
