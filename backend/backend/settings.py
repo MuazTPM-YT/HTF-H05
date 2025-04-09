@@ -188,3 +188,7 @@ CORS_ALLOW_HEADERS = [
     'pragma',
     'expires',
 ]
+
+# Encryption settings
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', SECRET_KEY)
+ENCRYPTION_SALT = os.environ.get('ENCRYPTION_SALT', b'healthchain_salt')

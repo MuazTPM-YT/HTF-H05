@@ -86,60 +86,6 @@ const EmergencyAccess = () => {
         </div>
       </div>
 
-      {/* Critical Information */}
-      <div className="border rounded-lg p-5 space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Critical Information</h2>
-            <p className="text-gray-500">Information that will be accessible in an emergency</p>
-          </div>
-          <Button variant="outline">Edit Information</Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-          <div>
-            <h3 className="font-medium text-gray-700 mb-2">Basic Information</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Blood Type</label>
-                <input type="text" value="O+" readOnly className="py-2 px-3 border rounded-md w-full bg-gray-50" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Weight</label>
-                <input type="text" value="165 lbs" readOnly className="py-2 px-3 border rounded-md w-full bg-gray-50" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Height</label>
-                <input type="text" value={"5'10\""} readOnly className="py-2 px-3 border rounded-md w-full bg-gray-50" />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-medium text-gray-700 mb-2">Medical Conditions</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Allergies</label>
-                <textarea
-                  readOnly
-                  className="py-2 px-3 border rounded-md w-full bg-gray-50 h-20"
-                  value="Penicillin, Peanuts"
-                ></textarea>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Medications</label>
-                <textarea
-                  readOnly
-                  className="py-2 px-3 border rounded-md w-full bg-gray-50 h-20"
-                  value="Atorvastatin 20mg daily, Lisinopril 10mg daily"
-                ></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Emergency Contacts */}
       <div className="border rounded-lg p-5 space-y-4">
         <div className="flex items-start justify-between">
           <div>

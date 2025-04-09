@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { ACCESS_TOKEN } from '../../constants'
+import axios from 'axios'
 
 const ProtectedRoute = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true)
@@ -12,14 +13,51 @@ const ProtectedRoute = ({ children }) => {
     useEffect(() => {
         const checkAuthentication = async () => {
             try {
-                // Simulate checking token validity
+                // Get token from localStorage
                 const token = localStorage.getItem(ACCESS_TOKEN)
                 const onboardingCompleted = localStorage.getItem('onboardingCompleted')
                 const accountCreated = localStorage.getItem('accountCreated')
+                const isLocalAuth = localStorage.getItem('isLocalAuth') === 'true'
 
-                // Check authentication
-                const authenticated = !!token
-                setIsAuthenticated(authenticated)
+                // If no token, user is not authenticated
+                if (!token) {
+                    setIsAuthenticated(false)
+                    setIsLoading(false)
+                    return
+                }
+
+                // If using local authentication (offline mode), consider the user authenticated
+                if (isLocalAuth || token.startsWith('local_')) {
+                    console.log('Using local authentication token')
+                    setIsAuthenticated(true)
+                    setIsLoading(false)
+                    return
+                }
+
+                // Otherwise validate token with backend
+                try {
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+                    await axios.get(`${apiUrl}/api/user/verify/`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        },
+                        timeout: 5000 // Add timeout to prevent hanging
+                    })
+                    // Token is valid
+                    setIsAuthenticated(true)
+                } catch (tokenError) {
+                    console.error('Token validation error:', tokenError)
+
+                    // If backend validation fails, fall back to local auth as a last resort
+                    // This allows users to continue using the app even if backend is down
+                    if (token.includes('_')) {
+                        console.log('Falling back to local token validation')
+                        setIsAuthenticated(true)
+                        localStorage.setItem('isLocalAuth', 'true')
+                    } else {
+                        setIsAuthenticated(false)
+                    }
+                }
 
                 // If account was just created and onboarding is not completed yet,
                 // user needs to go through onboarding

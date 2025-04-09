@@ -30,6 +30,7 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // Handle token refresh for 401 errors
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
@@ -62,102 +63,36 @@ api.interceptors.response.use(
 // Auth API functions
 export const register = async (userData) => {
     try {
-        // Try to connect to the backend first
-        try {
-            const response = await api.post('/api/user/register/', userData);
-            return response.data;
-        } catch (apiError) {
-            // If backend is not available, use local authentication
-<<<<<<< HEAD
-            console.log('Backend not available, using local authentication');
-=======
-            console.log('Backend registration failed, using local storage');
->>>>>>> muaz
-
-            // Store user data in localStorage
-            localStorage.setItem('username', userData.email);
-            localStorage.setItem('fullName', userData.first_name + ' ' + userData.last_name);
-            localStorage.setItem('email', userData.email);
-<<<<<<< HEAD
-=======
-            localStorage.setItem('password', userData.password); // Store password for local auth
->>>>>>> muaz
-            localStorage.setItem('phone_number', userData.phone_number);
-            localStorage.setItem('role', userData.role);
-            localStorage.setItem('accountCreated', 'true');
-
-            // Store dummy tokens
-            localStorage.setItem(ACCESS_TOKEN, 'dummy-access-token');
-            localStorage.setItem(REFRESH_TOKEN, 'dummy-refresh-token');
-
-<<<<<<< HEAD
-=======
-            console.log('Local registration successful:', {
-                email: userData.email,
-                role: userData.role
-            });
-
->>>>>>> muaz
-            return { success: true };
-        }
+        const response = await api.post('/api/user/register/', userData);
+        return response.data;
     } catch (error) {
         console.error('Registration error:', error);
+        if (error.response?.data?.detail) {
+            throw new Error(error.response.data.detail);
+        }
         throw new Error('Registration failed. Please try again.');
     }
 };
 
 export const login = async (credentials) => {
     try {
-        // Try to connect to the backend first
-        try {
-            const response = await api.post('/api/token/', credentials);
-            const { access, refresh } = response.data;
-            localStorage.setItem(ACCESS_TOKEN, access);
-            localStorage.setItem(REFRESH_TOKEN, refresh);
-            return response.data;
-        } catch (apiError) {
-            // If backend is not available or returns 401, use local authentication
-            console.log('Backend authentication failed, trying local authentication');
-
-            // Check if user exists in localStorage
-            const storedEmail = localStorage.getItem('email');
-            const storedPassword = localStorage.getItem('password');
-
-            console.log('Stored credentials:', { storedEmail, storedPassword });
-            console.log('Login attempt with:', credentials);
-
-            if (storedEmail && storedPassword &&
-                storedEmail === credentials.username &&
-                storedPassword === credentials.password) {
-                console.log('Local authentication successful');
-
-                // Store dummy tokens
-                localStorage.setItem(ACCESS_TOKEN, 'dummy-access-token');
-                localStorage.setItem(REFRESH_TOKEN, 'dummy-refresh-token');
-
-                // Return success response
-                return {
-                    access: 'dummy-access-token',
-                    refresh: 'dummy-refresh-token',
-                    user: {
-                        email: storedEmail,
-                        role: localStorage.getItem('role'),
-                        fullName: localStorage.getItem('fullName')
-                    }
-                };
-            } else {
-                console.log('Local authentication failed');
-                // If no stored credentials or they don't match
-                if (!storedEmail || !storedPassword) {
-                    throw new Error('No account found. Please register first.');
-                } else {
-                    throw new Error('Invalid credentials');
-                }
-            }
-        }
+        const response = await api.post('/api/token/', credentials);
+        const { access, refresh } = response.data;
+        localStorage.setItem(ACCESS_TOKEN, access);
+        localStorage.setItem(REFRESH_TOKEN, refresh);
+        return response.data;
     } catch (error) {
         console.error('Login error:', error);
-        throw new Error(error.message || 'Login failed. Please check your credentials and try again.');
+        if (error.response?.data?.detail) {
+            throw new Error(error.response.data.detail);
+        } else if (error.response?.status === 401) {
+            throw new Error('Invalid email or password');
+        } else if (error.response?.status === 500) {
+            throw new Error('Server error. Please try again later.');
+        } else if (error.request) {
+            throw new Error('Network error. Please check your connection.');
+        }
+        throw new Error('Login failed. Please check your credentials and try again.');
     }
 };
 
@@ -172,8 +107,20 @@ export const logout = async () => {
 };
 
 export const getUserProfile = async () => {
-    // This is just a placeholder since there's no user profile endpoint in the backend
-    return { username: localStorage.getItem('username') || 'User' };
+    try {
+        const response = await api.get('/api/user/profile/');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Fallback to local storage if API fails
+        return {
+            username: localStorage.getItem('username') || 'User',
+            fullName: localStorage.getItem('fullName'),
+            email: localStorage.getItem('email'),
+            role: localStorage.getItem('role') || 'patient',
+            phoneNumber: localStorage.getItem('phoneNumber'),
+        };
+    }
 };
 
 // Export the api instance and auth functions

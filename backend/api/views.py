@@ -22,9 +22,52 @@ from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
 import requests
 from twilio.rest import Client
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
+from rest_framework.views import APIView
+from django.db import transaction
 
 load_dotenv()
 User = get_user_model()
+
+# Custom Token Authentication View
+class CustomTokenObtainPairView(APIView):
+    permission_classes = [AllowAny]
+    
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response(
+                {"detail": "Username and password are required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Use Django's built-in authentication
+        user = authenticate(username=username, password=password)
+        
+        if user is None:
+            # Log failed login attempt if desired
+            return Response(
+                {"detail": "Invalid credentials"}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Generate tokens using the existing serializer
+        serializer = TokenObtainPairSerializer(data=request.data)
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            # Provide more detailed error for debugging
+            return Response(
+                {"detail": f"Authentication failed: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()

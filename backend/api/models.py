@@ -5,6 +5,7 @@ from django.utils import timezone
 import secrets
 import hashlib
 import uuid
+from api.utils.fields import EncryptedCharField, EncryptedTextField, EncryptedJSONField
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -19,18 +20,18 @@ class User(AbstractUser):
     )
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='patient')
-    phone_number = models.CharField(max_length=15, blank=True)
+    phone_number = EncryptedCharField(max_length=150, blank=True)  # Increased size to accommodate encrypted data
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True)
     
-    license_number = models.CharField(max_length=50, blank=True)
+    license_number = EncryptedCharField(max_length=150, blank=True)  # Increased size + encrypted
     specialization = models.CharField(max_length=100, blank=True)
-    hospital_name = models.CharField(max_length=200, blank=True)
-    location = models.CharField(max_length=200, blank=True)
+    hospital_name = EncryptedCharField(max_length=250, blank=True)  # Increased size + encrypted
+    location = EncryptedCharField(max_length=250, blank=True)  # Increased size + encrypted
 
-    # Emergency access fields
-    emergency_contacts = models.JSONField(default=list)
-    critical_health_info = models.JSONField(default=dict)
+    # Emergency access fields - encrypted for privacy
+    emergency_contacts = EncryptedJSONField(default=list, blank=True)
+    critical_health_info = EncryptedJSONField(default=dict, blank=True)
     emergency_access_enabled = models.BooleanField(default=True)
     emergency_access_expires_at = models.DateTimeField(null=True, blank=True)
 
@@ -68,17 +69,17 @@ class EmergencyAccessLog(models.Model):
         ('REVOKED', 'Access Revoked'),
         ('FAILED', 'Failed Attempt')
     ])
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
-    user_agent = models.TextField(null=True, blank=True)
-    details = models.JSONField(default=dict)
+    ip_address = EncryptedCharField(max_length=100, null=True, blank=True)  # Encrypted IP address
+    user_agent = EncryptedTextField(null=True, blank=True)  # Encrypted user agent
+    details = EncryptedJSONField(default=dict, blank=True)  # Encrypted details
 
     class Meta:
         ordering = ['-timestamp']
 
 class EmergencyPIN(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='emergency_pins')
-    pin = models.CharField(max_length=6)
-    pin_hash = models.CharField(max_length=64)  # Store hashed PIN
+    pin = EncryptedCharField(max_length=100)  # Encrypted PIN
+    pin_hash = models.CharField(max_length=64)  # Store hashed PIN (already secure)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(default=timezone.now)
     is_used = models.BooleanField(default=False)
@@ -99,7 +100,7 @@ class EmergencyPIN(models.Model):
     last_attempt = models.DateTimeField(null=True, blank=True)
     is_revoked = models.BooleanField(default=False)
     revoked_at = models.DateTimeField(null=True, blank=True)
-    revoked_reason = models.TextField(null=True, blank=True)
+    revoked_reason = EncryptedTextField(null=True, blank=True)  # Encrypted reason
 
     class Meta:
         ordering = ['-created_at']
